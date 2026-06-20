@@ -4,6 +4,8 @@ export * from './constants';
 export * from './securityQuestions';
 // Math del ruler
 export * from './ruler';
+// Cálculo de marcas de mira (PCHIP + parábola)
+export * from './sightMarks';
 // Tipos de entidades
 export * from './types';
 // Schemas Zod

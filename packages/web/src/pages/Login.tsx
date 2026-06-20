@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { LogoFull } from '../components/Logo';
 import { Button, Card, FieldError, Input, Label } from '../components/ui';
 import { useLogin } from '../hooks/useAuth';
-import { ApiClientError } from '../lib/apiClient';
+import { friendlyError } from '../lib/errorMessage';
 
 export function Login() {
   const navigate = useNavigate();
@@ -11,7 +11,7 @@ export function Login() {
   const [alias, setAlias] = useState('');
   const [password, setPassword] = useState('');
 
-  const error = login.error instanceof ApiClientError ? login.error : null;
+  const error = login.error ? friendlyError(login.error) : null;
 
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -24,7 +24,7 @@ export function Login() {
         <LogoFull className="h-11 w-auto text-fg" />
         <div className="text-center">
           <h1 className="text-xl font-semibold text-fg">Entrar</h1>
-          <p className="text-sm text-muted">Registrá la calibración de tu mira.</p>
+          <p className="text-sm text-muted">Accedé a las marcas de mira de tus distancias.</p>
         </div>
       </div>
 
@@ -52,7 +52,7 @@ export function Login() {
               required
             />
           </div>
-          {error && <FieldError>{error.message}</FieldError>}
+          {error && <FieldError>{error}</FieldError>}
           <Button type="submit" loading={login.isPending}>
             Entrar
           </Button>

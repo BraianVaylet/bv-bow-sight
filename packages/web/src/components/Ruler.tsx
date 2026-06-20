@@ -6,8 +6,17 @@ const TRACK_X = 58; // x del riel (deja lugar a los números de cm a la izquierd
 const MARKER_X = TRACK_X + 44; // x donde arranca el chip del marcador
 const LABEL_H = 38; // alto estimado del chip (anti-solape)
 
+/** Recorta a 2 decimales sin ceros sobrantes (1.5 → "1.5", 0.72 → "0.72"). */
+function fmtScale(v: number): string {
+  return Number(v.toFixed(2)).toString();
+}
+
 export interface RulerMarker extends MarkerInput {
   notes?: string | null;
+  /** 'user' = cargada por el arquero; 'computed' = calculada (intermedia/sala). */
+  variant?: 'user' | 'computed';
+  /** Solo para calculadas: true = interpolada (PCHIP); false = extrapolada (estimada). */
+  interpolated?: boolean;
 }
 
 interface RulerProps {
@@ -36,6 +45,8 @@ export function Ruler({ scaleMin, scaleMax, markers, onMarkerClick }: RulerProps
   const drawH = size.h - PAD * 2;
   const ticks = generateTicks(scaleMin, scaleMax, drawH);
   const laid = layoutMarkers(markers, scaleMin, scaleMax, drawH, LABEL_H);
+  // layoutMarkers preserva el id pero no los campos extra: los recuperamos por id.
+  const byId = new Map(markers.map((m) => [m.id, m]));
 
   return (
     <div ref={wrapRef} className="h-full w-full">
@@ -44,7 +55,7 @@ export function Ruler({ scaleMin, scaleMax, markers, onMarkerClick }: RulerProps
         height={size.h}
         viewBox={`0 0 ${size.w} ${size.h}`}
         role="img"
-        aria-label={`Escala de ${scaleMin} a ${scaleMax} con ${markers.length} distancias`}
+        aria-label={`Escala de ${scaleMin} a ${scaleMax} con ${markers.length} marcas`}
       >
         <g transform={`translate(0 ${PAD})`}>
           {/* Riel */}
@@ -90,21 +101,32 @@ export function Ruler({ scaleMin, scaleMax, markers, onMarkerClick }: RulerProps
 
           {/* Marcadores de distancia */}
           {laid.map((m) => {
+            const src = byId.get(m.id);
+            const computed = src?.variant === 'computed';
+            const estimated = computed && src?.interpolated === false;
             const pushed = Math.abs(m.labelY - m.anchorY) > 0.5;
+            const dotColor = computed ? 'var(--color-muted)' : 'var(--color-primary)';
             return (
-              <g key={m.id} className="cursor-pointer">
+              <g key={m.id} className={computed ? undefined : 'cursor-pointer'}>
                 {/* Línea guía si la etiqueta se corrió */}
                 {pushed && (
                   <path
                     d={`M ${TRACK_X + 2} ${m.anchorY} C ${MARKER_X - 12} ${m.anchorY}, ${MARKER_X - 12} ${m.labelY}, ${MARKER_X} ${m.labelY}`}
                     fill="none"
-                    stroke="var(--color-primary)"
+                    stroke={dotColor}
                     strokeOpacity={0.5}
                     strokeWidth={1.5}
                   />
                 )}
-                {/* Punto sobre el riel (posición real) */}
-                <circle cx={TRACK_X} cy={m.anchorY} r={4.5} fill="var(--color-primary)" />
+                {/* Punto sobre el riel (posición real): lleno = usuario, hueco = calculada */}
+                <circle
+                  cx={TRACK_X}
+                  cy={m.anchorY}
+                  r={4.5}
+                  fill={computed ? 'var(--color-surface)' : 'var(--color-primary)'}
+                  stroke={dotColor}
+                  strokeWidth={computed ? 2 : 0}
+                />
 
                 {/* Chip de distancia */}
                 <g transform={`translate(${MARKER_X} ${m.labelY})`}>
@@ -114,11 +136,21 @@ export function Ruler({ scaleMin, scaleMax, markers, onMarkerClick }: RulerProps
                     width={size.w - MARKER_X - 6}
                     height={LABEL_H}
                     rx={9}
-                    fill="var(--color-surface-2)"
-                    stroke="var(--color-border)"
+                    fill={computed ? 'transparent' : 'var(--color-surface-2)'}
+                    stroke={computed ? dotColor : 'var(--color-border)'}
+                    strokeDasharray={computed ? '4 3' : undefined}
                   />
-                  <text x={12} y={-3} fontSize={15} fontWeight={700} fill="var(--color-fg)">
-                    <tspan className="tnum">{m.distanceM}</tspan>
+                  <text
+                    x={12}
+                    y={-3}
+                    fontSize={15}
+                    fontWeight={700}
+                    fill={computed ? 'var(--color-muted)' : 'var(--color-fg)'}
+                  >
+                    <tspan className="tnum">
+                      {estimated ? '≈' : ''}
+                      {m.distanceM}
+                    </tspan>
                     <tspan fontSize={11} fontWeight={500} fill="var(--color-muted)">
                       {' '}
                       m
@@ -129,21 +161,24 @@ export function Ruler({ scaleMin, scaleMax, markers, onMarkerClick }: RulerProps
                     y={13}
                     fontSize={11}
                     className="tnum"
-                    fill="var(--color-primary-ink)"
+                    fill={computed ? 'var(--color-muted)' : 'var(--color-primary-ink)'}
                   >
-                    escala {m.scaleValue}
+                    escala {fmtScale(m.scaleValue)}
+                    {estimated ? ' · estimada' : ''}
                   </text>
-                  {/* Hit area para tap */}
-                  <rect
-                    x={0}
-                    y={-LABEL_H / 2}
-                    width={size.w - MARKER_X - 6}
-                    height={LABEL_H}
-                    fill="transparent"
-                    onClick={() => onMarkerClick?.(m.id)}
-                  >
-                    <title>{`${m.distanceM} m · escala ${m.scaleValue}`}</title>
-                  </rect>
+                  {/* Hit area para tap (solo marcas del usuario) */}
+                  {!computed && (
+                    <rect
+                      x={0}
+                      y={-LABEL_H / 2}
+                      width={size.w - MARKER_X - 6}
+                      height={LABEL_H}
+                      fill="transparent"
+                      onClick={() => onMarkerClick?.(m.id)}
+                    >
+                      <title>{`${m.distanceM} m · escala ${fmtScale(m.scaleValue)}`}</title>
+                    </rect>
+                  )}
                 </g>
               </g>
             );

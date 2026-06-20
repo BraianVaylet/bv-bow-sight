@@ -4,7 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Button, Card, FieldError, Input, Label, Select, Spinner } from '../components/ui';
 import { arrowApi, bowApi } from '../lib/api/setups';
 import { sightApi } from '../lib/api/sightConfigs';
-import { ApiClientError } from '../lib/apiClient';
+import { friendlyError } from '../lib/errorMessage';
 
 export function SightEdit() {
   const { id } = useParams();
@@ -61,7 +61,7 @@ export function SightEdit() {
     },
   });
 
-  const error = save.error instanceof ApiClientError ? save.error : null;
+  const error = save.error ? friendlyError(save.error) : null;
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
     save.mutate();
@@ -136,7 +136,7 @@ export function SightEdit() {
               />
             </div>
           </div>
-          {error && <FieldError>{error.message}</FieldError>}
+          {error && <FieldError>{error}</FieldError>}
           <Button type="submit" loading={save.isPending}>
             Guardar cambios
           </Button>

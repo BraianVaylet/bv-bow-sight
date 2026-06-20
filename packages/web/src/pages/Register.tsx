@@ -6,6 +6,7 @@ import { Button, Card, FieldError, Input, Label, Select } from '../components/ui
 import { useRegister } from '../hooks/useAuth';
 import { authApi } from '../lib/api/auth';
 import { ApiClientError } from '../lib/apiClient';
+import { friendlyError } from '../lib/errorMessage';
 
 type AliasStatus = 'idle' | 'checking' | 'free' | 'taken' | 'invalid';
 
@@ -99,7 +100,7 @@ export function Register() {
   };
 
   // Error general (no asociado a un campo concreto)
-  const generalError = apiError && !apiError.details ? apiError.message : loadError;
+  const generalError = apiError && !apiError.details ? friendlyError(apiError) : loadError;
 
   return (
     <div className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center gap-6">

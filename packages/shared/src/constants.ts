@@ -26,6 +26,12 @@ export const ERROR_CODES = {
 
 export type ErrorCode = (typeof ERROR_CODES)[keyof typeof ERROR_CODES];
 
+/** Cantidad mínima de marcas (por set de flechas) para desbloquear el cálculo de intermedias. */
+export const SIGHT_CALC_MIN_MARKS = 5;
+
+/** Distancia de sala (indoor) que se agrega como marca calculada por defecto. */
+export const INDOOR_DISTANCE_M = 18;
+
 /** Marcas del ruler: largos en px por tipo de tick. */
 export const TICK_LENGTH_PX = { sm: 8, md: 14, lg: 22 } as const;
 

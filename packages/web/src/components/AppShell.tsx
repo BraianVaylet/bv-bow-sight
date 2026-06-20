@@ -1,8 +1,84 @@
+import { useEffect, useRef, useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useLogout } from '../hooks/useAuth';
-import { useTheme } from '../theme';
-import { LogoMini } from './Logo';
+import { ACCENTS, useTheme } from '../theme';
+import { LogoFull } from './Logo';
 import { Button } from './ui';
+
+/** Selector de color base de la app (popover con muestras). */
+function AccentPicker() {
+  const { accent, setAccent } = useTheme();
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false);
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-label="Cambiar color de la app"
+        aria-haspopup="true"
+        aria-expanded={open}
+        className="flex h-9 w-9 items-center justify-center rounded-lg text-fg hover:bg-surface-2"
+      >
+        <span className="h-5 w-5 rounded-full bg-primary ring-2 ring-border" />
+      </button>
+
+      {open && (
+        <div className="absolute right-0 z-40 mt-2 w-56 rounded-xl border border-border bg-surface p-2 shadow-lg">
+          <p className="px-2 pb-1 pt-1 text-xs font-medium text-muted">Color de la app</p>
+          <div className="flex flex-col gap-0.5">
+            {ACCENTS.map((a) => (
+              <button
+                key={a.id}
+                type="button"
+                onClick={() => {
+                  setAccent(a.id);
+                  setOpen(false);
+                }}
+                aria-pressed={accent === a.id}
+                className={`flex min-h-11 items-center gap-3 rounded-lg px-2 text-left text-sm text-fg hover:bg-surface-2 ${
+                  accent === a.id ? 'bg-surface-2 font-medium' : ''
+                }`}
+              >
+                <span
+                  className="h-6 w-6 shrink-0 rounded-full ring-1 ring-border"
+                  style={{ backgroundColor: a.base }}
+                />
+                <span className="flex-1">{a.label}</span>
+                {accent === a.id && (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
+                    <path
+                      d="M5 13l4 4L19 7"
+                      stroke="currentColor"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function AppShell() {
   const { theme, toggle } = useTheme();
@@ -39,8 +115,10 @@ export function AppShell() {
           aria-label="BV bow sight"
           className="mr-auto flex items-center rounded-lg text-fg transition-opacity hover:opacity-80"
         >
-          <LogoMini className="h-7 w-auto" />
+          <LogoFull className="h-7 w-auto" />
         </button>
+
+        <AccentPicker />
 
         <button
           type="button"

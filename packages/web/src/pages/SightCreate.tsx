@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button, Card, FieldError, Input, Label, Select } from '../components/ui';
 import { arrowApi, bowApi } from '../lib/api/setups';
 import { sightApi } from '../lib/api/sightConfigs';
-import { ApiClientError } from '../lib/apiClient';
+import { friendlyError } from '../lib/errorMessage';
 
 export function SightCreate() {
   const navigate = useNavigate();
@@ -36,7 +36,7 @@ export function SightCreate() {
       navigate(`/sight/${created.id}`);
     },
   });
-  const error = mut.error instanceof ApiClientError ? mut.error : null;
+  const error = mut.error ? friendlyError(mut.error) : null;
 
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -114,7 +114,7 @@ export function SightCreate() {
             </div>
           </div>
 
-          {error && <FieldError>{error.message}</FieldError>}
+          {error && <FieldError>{error}</FieldError>}
           <Button type="submit" loading={mut.isPending}>
             Crear mira
           </Button>

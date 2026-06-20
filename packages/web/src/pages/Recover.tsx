@@ -5,9 +5,7 @@ import { LogoFull } from '../components/Logo';
 import { Button, Card, FieldError, Input, Label } from '../components/ui';
 import { authApi } from '../lib/api/auth';
 import { ApiClientError } from '../lib/apiClient';
-
-const errMessage = (err: unknown) =>
-  err instanceof ApiClientError ? err.message : 'Ocurrió un error inesperado.';
+import { friendlyError } from '../lib/errorMessage';
 
 export function Recover() {
   const [step, setStep] = useState<1 | 2 | 3>(1);
@@ -29,7 +27,7 @@ export function Recover() {
       setQuestion(r.question);
       setStep(2);
     } catch (err) {
-      setError(errMessage(err));
+      setError(friendlyError(err));
     } finally {
       setLoading(false);
     }
@@ -54,7 +52,7 @@ export function Recover() {
           out[d.path === 'newPassword' ? 'newPassword' : d.path] = d.message;
         setFieldErrors(out);
       } else {
-        setError(errMessage(err));
+        setError(friendlyError(err));
       }
     } finally {
       setLoading(false);

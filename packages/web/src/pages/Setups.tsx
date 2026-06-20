@@ -13,7 +13,7 @@ import {
 } from '../components/ui';
 import { Modal } from '../components/ui/Modal';
 import { type SetupKind, setupsApi } from '../lib/api/setups';
-import { ApiClientError } from '../lib/apiClient';
+import { friendlyError } from '../lib/errorMessage';
 
 export function Setups({ kind, title }: { kind: SetupKind; title: string }) {
   const apiForKind = setupsApi(kind);
@@ -30,9 +30,7 @@ export function Setups({ kind, title }: { kind: SetupKind; title: string }) {
   const removeMut = useMutation({
     mutationFn: (id: number) => apiForKind.remove(id),
     onSuccess: invalidate,
-    onError: (err) => {
-      if (err instanceof ApiClientError) alert(err.message);
-    },
+    onError: (err) => alert(friendlyError(err)),
   });
 
   return (
@@ -116,7 +114,7 @@ function SetupFormModal({
       setup ? apiForKind.update(setup.id, { name, notes }) : apiForKind.create({ name, notes }),
     onSuccess: onSaved,
   });
-  const error = mut.error instanceof ApiClientError ? mut.error : null;
+  const error = mut.error ? friendlyError(mut.error) : null;
 
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -134,7 +132,7 @@ function SetupFormModal({
           <Label htmlFor="notes">Observaciones</Label>
           <TextArea id="notes" value={notes} onChange={(e) => setNotes(e.target.value)} required />
         </div>
-        {error && <FieldError>{error.message}</FieldError>}
+        {error && <FieldError>{error}</FieldError>}
         <div className="flex gap-2">
           <Button type="button" variant="secondary" className="flex-1" onClick={onClose}>
             Cancelar

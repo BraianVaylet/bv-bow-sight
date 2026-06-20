@@ -1,8 +1,15 @@
-import type { Distance, SightConfigDetail } from '@bv/shared';
+import {
+  SIGHT_CALC_MIN_MARKS,
+  type SightConfigDetail,
+  computeSightMarks,
+  createSightModel,
+} from '@bv/shared';
+import type { Distance } from '@bv/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { type FormEvent, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Ruler } from '../components/Ruler';
+import { Ruler, type RulerMarker } from '../components/Ruler';
+import { SightCurveChart } from '../components/SightCurveChart';
 import {
   Button,
   Card,
@@ -18,7 +25,7 @@ import { SegmentedControl } from '../components/ui/SegmentedControl';
 import { distanceApi } from '../lib/api/distances';
 import { arrowApi } from '../lib/api/setups';
 import { sightApi } from '../lib/api/sightConfigs';
-import { ApiClientError } from '../lib/apiClient';
+import { friendlyError } from '../lib/errorMessage';
 
 export function SightDetail() {
   const { id } = useParams();
@@ -34,6 +41,8 @@ export function SightDetail() {
   const [selected, setSelected] = useState<number | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Distance | null>(null);
+  const [showComputed, setShowComputed] = useState(false);
+  const [query, setQuery] = useState('');
 
   // Preselección de la botonera (set por defecto o el primero con distancias)
   useEffect(() => {
@@ -54,6 +63,33 @@ export function SightDetail() {
     return data.distances.filter((d) => d.arrowSetupId === selected);
   }, [data, selected]);
 
+  // ── Cálculo de distancias intermedias (por set de flechas seleccionado) ──
+  const canCompute = visibleDistances.length >= SIGHT_CALC_MIN_MARKS;
+
+  const model = useMemo(
+    () =>
+      canCompute
+        ? createSightModel(
+            visibleDistances.map((d) => ({ distance: d.distanceM, mark: d.scaleValue })),
+          )
+        : null,
+    [visibleDistances, canCompute],
+  );
+
+  const computedMarks = useMemo(() => {
+    if (!model || !showComputed || !data) return [];
+    return computeSightMarks(
+      model,
+      visibleDistances.map((d) => d.distanceM),
+      { scaleMin: data.scaleMin, scaleMax: data.scaleMax },
+    );
+  }, [model, showComputed, visibleDistances, data]);
+
+  // Cuando el set seleccionado no llega a 5 marcas, se oculta el cálculo.
+  useEffect(() => {
+    if (!canCompute) setShowComputed(false);
+  }, [canCompute]);
+
   if (isLoading) {
     return (
       <div className="flex flex-1 items-center justify-center text-muted">
@@ -62,8 +98,52 @@ export function SightDetail() {
     );
   }
   if (isError || !data) {
-    return <p className="py-8 text-center text-sm text-danger-ink">No se pudo cargar la mira.</p>;
+    return (
+      <p className="py-8 text-center text-sm text-danger-ink">
+        No pudimos cargar esta mira. Revisá tu conexión y volvé a intentar.
+      </p>
+    );
   }
+
+  // Distancia consultada en la calculadora.
+  const queryNum = query.trim() !== '' && Number.isFinite(Number(query)) ? Number(query) : null;
+  const queryResult = model && queryNum != null ? model.markAt(queryNum) : null;
+
+  // Marcadores del ruler: del usuario + calculadas + la consultada (temporal).
+  const COMPUTED_ID = -1_000_000;
+  const QUERY_ID = -2_000_000;
+  const userMarkers: RulerMarker[] = visibleDistances.map((d) => ({
+    id: d.id,
+    scaleValue: d.scaleValue,
+    distanceM: d.distanceM,
+    notes: d.notes,
+    variant: 'user',
+  }));
+  const autoMarkers: RulerMarker[] = computedMarks.map((m, i) => ({
+    id: COMPUTED_ID - i,
+    scaleValue: m.scaleValue,
+    distanceM: m.distanceM,
+    variant: 'computed',
+    interpolated: m.interpolated,
+  }));
+  const queryMarkers: RulerMarker[] =
+    showComputed &&
+    queryResult &&
+    queryNum != null &&
+    queryResult.mark >= data.scaleMin &&
+    queryResult.mark <= data.scaleMax
+      ? [
+          {
+            id: QUERY_ID,
+            scaleValue: queryResult.mark,
+            distanceM: queryNum,
+            variant: 'computed',
+            interpolated: queryResult.interpolated,
+          },
+        ]
+      : [];
+  const rulerMarkers = [...userMarkers, ...autoMarkers, ...queryMarkers];
+  const missing = SIGHT_CALC_MIN_MARKS - visibleDistances.length;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
@@ -93,24 +173,19 @@ export function SightDetail() {
         />
       )}
 
-      {/* Regla */}
-      <div className="min-h-0 flex-1">
+      {/* Regla + cálculo (con scroll cuando se desbloquea) */}
+      <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto">
         {data.distances.length === 0 ? (
           <EmptyState
-            title="Sin distancias"
-            description="Cargá la primera distancia para ver dónde ubicar la mira."
+            title="Sin marcas todavía"
+            description="Cargá tu primera marca de mira para saber a qué distancia apuntar."
           />
         ) : (
-          <Card className="h-full p-2">
+          <Card className="min-h-[360px] flex-1 p-2">
             <Ruler
               scaleMin={data.scaleMin}
               scaleMax={data.scaleMax}
-              markers={visibleDistances.map((d) => ({
-                id: d.id,
-                scaleValue: d.scaleValue,
-                distanceM: d.distanceM,
-                notes: d.notes,
-              }))}
+              markers={rulerMarkers}
               onMarkerClick={(mid) => {
                 const dist = data.distances.find((d) => d.id === mid) ?? null;
                 setEditing(dist);
@@ -118,6 +193,92 @@ export function SightDetail() {
               }}
             />
           </Card>
+        )}
+
+        {/* Aviso: faltan marcas para desbloquear el cálculo */}
+        {visibleDistances.length > 0 && !canCompute && (
+          <Card className="border-dashed">
+            <p className="text-sm text-fg">
+              Cargá {missing} marca{missing === 1 ? '' : 's'} más para desbloquear el cálculo de
+              distancias intermedias y de sala.
+            </p>
+            <p className="mt-1 text-xs text-muted">
+              Llevás {visibleDistances.length}/{SIGHT_CALC_MIN_MARKS} en este set de flechas.
+            </p>
+          </Card>
+        )}
+
+        {/* Botón de desbloqueo */}
+        {canCompute && !showComputed && (
+          <Button variant="secondary" onClick={() => setShowComputed(true)}>
+            Calcular distancias intermedias
+          </Button>
+        )}
+
+        {/* Distancias calculadas: curva + calculadora */}
+        {showComputed && model && (
+          <>
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-fg">Distancias calculadas</h2>
+              <Button
+                variant="ghost"
+                className="px-2 text-xs"
+                onClick={() => setShowComputed(false)}
+              >
+                Ocultar
+              </Button>
+            </div>
+
+            <Card className="p-3">
+              <SightCurveChart
+                model={model}
+                userPoints={visibleDistances.map((d) => ({
+                  distanceM: d.distanceM,
+                  scaleValue: d.scaleValue,
+                }))}
+                query={queryNum}
+              />
+            </Card>
+
+            <Card className="p-3">
+              <Label htmlFor="q">Calcular una distancia</Label>
+              <div className="relative">
+                <Input
+                  id="q"
+                  type="number"
+                  step="0.5"
+                  inputMode="decimal"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Ej: 37"
+                  className="tnum pr-9"
+                />
+                <span className="-translate-y-1/2 pointer-events-none absolute top-1/2 right-3 text-sm text-muted">
+                  m
+                </span>
+              </div>
+
+              <div className="mt-3 rounded-xl bg-surface-2 px-3 py-2 text-sm">
+                {queryNum == null ? (
+                  <span className="text-muted">
+                    Ingresá los metros para ver en qué escala poner la mira.
+                  </span>
+                ) : queryResult ? (
+                  <div className="flex items-baseline justify-between gap-2">
+                    <span className="tnum text-muted">{queryNum} m →</span>
+                    <span className="flex items-baseline gap-2">
+                      <span className="tnum font-semibold text-lg text-primary-ink">
+                        {Number(queryResult.mark.toFixed(2))}
+                      </span>
+                      <span className="text-muted text-xs">
+                        {queryResult.interpolated ? 'medido' : 'estimado'}
+                      </span>
+                    </span>
+                  </div>
+                ) : null}
+              </div>
+            </Card>
+          </>
         )}
       </div>
 
@@ -129,7 +290,7 @@ export function SightDetail() {
           setFormOpen(true);
         }}
       >
-        + Nueva distancia
+        + Nueva marca
       </Button>
 
       {formOpen && (
@@ -207,7 +368,7 @@ function DistanceFormModal({
     },
     onError: (err, _v, ctx) => {
       if (ctx?.prev) qc.setQueryData(sightKey, ctx.prev);
-      if (err instanceof ApiClientError) alert(err.message);
+      alert(friendlyError(err));
     },
     onSuccess: onClose,
     onSettled: reconcile,
@@ -229,19 +390,22 @@ function DistanceFormModal({
       }
       return { prev };
     },
-    onError: (_e, _v, ctx) => ctx?.prev && qc.setQueryData(sightKey, ctx.prev),
+    onError: (err, _v, ctx) => {
+      if (ctx?.prev) qc.setQueryData(sightKey, ctx.prev);
+      alert(friendlyError(err));
+    },
     onSuccess: onClose,
     onSettled: reconcile,
   });
 
-  const error = save.error instanceof ApiClientError ? save.error : null;
+  const error = save.error ? friendlyError(save.error) : null;
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
     save.mutate();
   };
 
   return (
-    <Modal open onClose={onClose} title={distance ? 'Editar distancia' : 'Nueva distancia'}>
+    <Modal open onClose={onClose} title={distance ? 'Editar marca' : 'Nueva marca de mira'}>
       <form onSubmit={onSubmit} className="flex flex-col gap-4">
         <div className="flex gap-3">
           <div className="flex-1">
@@ -258,7 +422,7 @@ function DistanceFormModal({
           </div>
           <div className="flex-1">
             <Label htmlFor="sv">
-              Escala ({config.scaleMin}–{config.scaleMax})
+              Marca de mira ({config.scaleMin}–{config.scaleMax})
             </Label>
             <Input
               id="sv"
@@ -301,7 +465,7 @@ function DistanceFormModal({
           />
         </div>
 
-        {error && <FieldError>{error.message}</FieldError>}
+        {error && <FieldError>{error}</FieldError>}
 
         <div className="flex gap-2">
           {distance && (
@@ -309,7 +473,7 @@ function DistanceFormModal({
               type="button"
               variant="ghost"
               className="text-danger-ink"
-              onClick={() => confirm('¿Eliminar esta distancia?') && remove.mutate()}
+              onClick={() => confirm('¿Eliminar esta marca de mira?') && remove.mutate()}
             >
               Eliminar
             </Button>

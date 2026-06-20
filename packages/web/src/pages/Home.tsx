@@ -36,13 +36,15 @@ export function Home() {
       )}
 
       {isError && (
-        <p className="py-8 text-center text-sm text-danger-ink">No se pudieron cargar las miras.</p>
+        <p className="py-8 text-center text-sm text-danger-ink">
+          No pudimos cargar tus miras. Revisá tu conexión y volvé a intentar.
+        </p>
       )}
 
       {data && data.length === 0 && (
         <EmptyState
-          title="Todavía no cargaste miras"
-          description="Creá tu primera mira y empezá a registrar la calibración por distancia."
+          title="Aún no tenés miras"
+          description="Creá tu primera mira y registrá las marcas para cada distancia."
         />
       )}
 
@@ -59,7 +61,7 @@ export function Home() {
                     </div>
                   </div>
                   <span className="tnum shrink-0 rounded-lg bg-surface-2 px-2 py-1 text-xs text-muted">
-                    {s.distanceCount} dist.
+                    {s.distanceCount} {s.distanceCount === 1 ? 'marca' : 'marcas'}
                   </span>
                 </Card>
               </Link>
