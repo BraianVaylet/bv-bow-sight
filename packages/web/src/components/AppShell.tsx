@@ -150,6 +150,10 @@ export function AppShell() {
       <main className="flex flex-1 flex-col px-3 py-4">
         <Outlet />
       </main>
+
+      <footer className="px-3 pb-2 text-center text-[10px] text-muted/60">
+        v{__APP_VERSION__}
+      </footer>
     </div>
   );
 }
