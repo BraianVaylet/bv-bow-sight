@@ -222,7 +222,7 @@ export function SightDetail() {
           />
         ) : (
           <Card className="min-h-[360px] flex-1 p-2">
-            <div className="flex h-full gap-1">
+            <div className="flex h-full gap-2">
               <div className="min-w-0 flex-1">
                 <Ruler
                   scaleMin={data.scaleMin}

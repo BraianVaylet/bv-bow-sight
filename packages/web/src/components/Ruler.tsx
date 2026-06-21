@@ -5,6 +5,9 @@ const PAD = 18; // margen vertical para no recortar mín/máx
 const TRACK_X = 58; // x del riel (deja lugar a los números de cm a la izquierda)
 const MARKER_X = TRACK_X + 44; // x donde arranca el chip del marcador
 const LABEL_H = 26; // alto del chip de una línea (anti-solape)
+// Margen derecho: deja una zona muerta entre el chip (área tocable) y la barra
+// de zoom, para no tocar una marca sin querer al usar el zoom en mobile.
+const CHIP_RIGHT_PAD = 28;
 
 /** Recorta a 2 decimales sin ceros sobrantes (1.5 → "1.5", 0.72 → "0.72"). */
 function fmtScale(v: number): string {
@@ -104,7 +107,7 @@ export function Ruler({ scaleMin, scaleMax, markers, onMarkerClick, zoom = 1 }: 
   const laid = layoutMarkers(markers, scaleMin, scaleMax, drawH, labelH);
   // layoutMarkers preserva el id pero no los campos extra: los recuperamos por id.
   const byId = new Map(markers.map((m) => [m.id, m]));
-  const chipW = size.w - MARKER_X - 6;
+  const chipW = size.w - MARKER_X - CHIP_RIGHT_PAD;
 
   return (
     <div ref={wrapRef} className="h-full w-full">
