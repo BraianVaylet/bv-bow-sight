@@ -54,16 +54,16 @@ export function Home() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center gap-2">
-        <h1 className="mr-auto text-lg font-semibold text-fg">Mis miras</h1>
-        <Link to="/setups/bow-setups">
-          <Button variant="secondary" className="px-3 text-xs">
+      <h1 className="text-lg font-semibold text-fg">Mis miras</h1>
+      <div className="flex gap-2">
+        <Link to="/setups/bow-setups" className="flex-1">
+          <Button variant="secondary" className="w-full px-3 text-xs">
             <BowIcon className="h-4 w-4" />
             Setups de arco
           </Button>
         </Link>
-        <Link to="/setups/arrow-setups">
-          <Button variant="secondary" className="px-3 text-xs">
+        <Link to="/setups/arrow-setups" className="flex-1">
+          <Button variant="secondary" className="w-full px-3 text-xs">
             <ArrowIcon className="h-4 w-4" />
             Sets de flechas
           </Button>

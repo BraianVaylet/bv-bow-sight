@@ -36,6 +36,11 @@ export function Setups({ kind, title }: { kind: SetupKind; title: string }) {
     onError: (err) => alert(friendlyError(err)),
   });
 
+  const description =
+    kind === 'bow-setups'
+      ? 'Registrá la configuración de cada arco con sus características. Después vas a poder asociarla a tus miras.'
+      : 'Registrá cada juego de flechas con sus características. Después vas a poder asociarlo a las marcas de tus miras.';
+
   return (
     <div className="flex flex-col gap-4">
       <h1 className="flex items-center gap-2 text-lg font-semibold text-fg">
@@ -46,6 +51,7 @@ export function Setups({ kind, title }: { kind: SetupKind; title: string }) {
         )}
         {title}
       </h1>
+      <p className="text-sm text-muted">{description}</p>
       <Button
         onClick={() => setCreating(true)}
         disabled={!online}

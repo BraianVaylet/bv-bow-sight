@@ -1,4 +1,5 @@
 import {
+  INDOOR_DISTANCE_M,
   SIGHT_CALC_MIN_MARKS,
   type SightConfigDetail,
   computeSightMarks,
@@ -8,7 +9,7 @@ import type { Distance } from '@bv/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { type FormEvent, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { StarFilledIcon, StarIcon } from '../components/Icons';
+import { InfoIcon, StarFilledIcon, StarIcon } from '../components/Icons';
 import { MarkZoomControl } from '../components/MarkZoomControl';
 import { Ruler, type RulerMarker } from '../components/Ruler';
 import { SightCurveChart } from '../components/SightCurveChart';
@@ -47,6 +48,7 @@ export function SightDetail() {
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Distance | null>(null);
   const [showComputed, setShowComputed] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
   const [query, setQuery] = useState('');
   const online = useOnlineStatus();
 
@@ -269,7 +271,18 @@ export function SightDetail() {
         {showComputed && model && (
           <>
             <div className="flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-fg">Distancias calculadas</h2>
+              <div className="flex items-center gap-1">
+                <h2 className="text-sm font-semibold text-fg">Distancias calculadas</h2>
+                <button
+                  type="button"
+                  onClick={() => setHelpOpen(true)}
+                  aria-label="Cómo se calculan las distancias"
+                  title="Cómo se calculan las distancias"
+                  className="flex h-6 w-6 items-center justify-center rounded-md text-muted hover:bg-surface-2 hover:text-fg"
+                >
+                  <InfoIcon className="h-4 w-4" />
+                </button>
+              </div>
               <Button
                 variant="ghost"
                 className="px-2 text-xs"
@@ -353,7 +366,61 @@ export function SightDetail() {
           onClose={() => setFormOpen(false)}
         />
       )}
+
+      {helpOpen && <CalcHelpModal onClose={() => setHelpOpen(false)} />}
     </div>
+  );
+}
+
+// ── Modal de ayuda: cómo se calculan las distancias ──
+function CalcHelpModal({ onClose }: { onClose: () => void }) {
+  return (
+    <Modal open onClose={onClose} title="Cómo se calculan las distancias">
+      <div className="flex flex-col gap-3 text-sm text-fg">
+        <p>
+          Las marcas que cargás son los puntos de referencia. Con ellas la app completa la mira para
+          el resto de las distancias de dos formas:
+        </p>
+
+        <div>
+          <p className="font-semibold">Dentro del rango que mediste</p>
+          <p className="text-muted">
+            Traza una curva suave que pasa <span className="font-medium text-fg">exactamente</span>{' '}
+            por cada marca cargada, sin saltos ni rebotes (spline monótono PCHIP). En la calculadora
+            figuran como <span className="font-medium text-fg">«medido»</span>.
+          </p>
+        </div>
+
+        <div>
+          <p className="font-semibold">Fuera de ese rango</p>
+          <p className="text-muted">
+            Ajusta una <span className="font-medium text-fg">parábola</span> a todas tus marcas y la
+            prolonga. Así estima, por ejemplo, la marca de{' '}
+            <span className="font-medium text-fg">sala (18 m)</span> si te queda fuera de lo medido.
+            Figuran como <span className="font-medium text-fg">«estimado»</span>.
+          </p>
+        </div>
+
+        <p className="text-muted">
+          En el gráfico, la curva es esa parábola de mejor ajuste y los puntos son tus marcas.
+          Cuantas más marcas cargues y mejor repartidas, más precisa es la estimación (se necesitan
+          al menos {SIGHT_CALC_MIN_MARKS}).
+        </p>
+
+        <p className="text-muted">
+          La app calcula sola las distancias intermedias (el punto medio entre cada par de marcas
+          consecutivas) y la de sala ({INDOOR_DISTANCE_M} m).
+        </p>
+
+        <div className="rounded-xl bg-surface-2 px-3 py-2 text-muted text-xs">
+          Las estimaciones son una ayuda: verificá siempre en el campo antes de competir.
+        </div>
+
+        <Button className="mt-1 w-full" onClick={onClose}>
+          Entendido
+        </Button>
+      </div>
+    </Modal>
   );
 }
 
