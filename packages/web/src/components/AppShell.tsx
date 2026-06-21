@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useLogout } from '../hooks/useAuth';
 import { ACCENTS, useTheme } from '../theme';
+import { InstallButton } from './InstallButton';
 import { Button } from './ui';
 
 /** Selector de color base de la app (popover con muestras). */
@@ -122,6 +123,8 @@ export function AppShell() {
           </span>
           <span className="font-bold text-fg text-lg tracking-tight">bow sight</span>
         </button>
+
+        <InstallButton />
 
         <AccentPicker />
 

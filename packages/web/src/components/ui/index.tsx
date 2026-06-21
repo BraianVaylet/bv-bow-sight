@@ -51,12 +51,33 @@ export function Card({ className, children }: { className?: string; children: Re
 }
 
 // ── Label + Field error ──
-export function Label({ children, htmlFor }: { children: ReactNode; htmlFor?: string }) {
+export function Label({
+  children,
+  htmlFor,
+  required,
+}: {
+  children: ReactNode;
+  htmlFor?: string;
+  /** Marca el campo como obligatorio con un asterisco. */
+  required?: boolean;
+}) {
   return (
     <label htmlFor={htmlFor} className="mb-1.5 block text-sm font-medium text-fg">
       {children}
+      {required && (
+        <span className="text-danger-ink" title="Obligatorio" aria-hidden>
+          {' '}
+          *
+        </span>
+      )}
     </label>
   );
+}
+
+/** Subtítulo de ayuda para un campo de formulario. */
+export function FieldHint({ children }: { children?: ReactNode }) {
+  if (!children) return null;
+  return <p className="mt-1 text-xs text-muted">{children}</p>;
 }
 
 export function FieldError({ children }: { children?: ReactNode }) {

@@ -1,9 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { type FormEvent, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Card, FieldError, Input, Label, Select } from '../components/ui';
+import { Button, Card, FieldError, FieldHint, Input, Label, Select } from '../components/ui';
 import { arrowApi, bowApi } from '../lib/api/setups';
 import { sightApi } from '../lib/api/sightConfigs';
+import { ApiClientError } from '../lib/apiClient';
 import { friendlyError } from '../lib/errorMessage';
 
 export function SightCreate() {
@@ -36,7 +37,10 @@ export function SightCreate() {
       navigate(`/sight/${created.id}`);
     },
   });
-  const error = mut.error ? friendlyError(mut.error) : null;
+  const apiError = mut.error instanceof ApiClientError ? mut.error : null;
+  const fieldError = (path: string) => apiError?.details?.find((d) => d.path === path)?.message;
+  // Error general solo si no es de un campo concreto.
+  const generalError = apiError?.details ? null : mut.error ? friendlyError(mut.error) : null;
 
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -49,7 +53,9 @@ export function SightCreate() {
       <Card>
         <form onSubmit={onSubmit} className="flex flex-col gap-4">
           <div>
-            <Label htmlFor="name">Nombre</Label>
+            <Label htmlFor="name" required>
+              Nombre
+            </Label>
             <Input
               id="name"
               value={name}
@@ -57,6 +63,11 @@ export function SightCreate() {
               placeholder="Ej: Ultraview / Evo NXT"
               required
             />
+            {fieldError('name') ? (
+              <FieldError>{fieldError('name')}</FieldError>
+            ) : (
+              <FieldHint>Con qué nombre vas a identificar esta mira.</FieldHint>
+            )}
           </div>
 
           <div>
@@ -69,6 +80,7 @@ export function SightCreate() {
                 </option>
               ))}
             </Select>
+            <FieldHint>El arco con el que vas a usar esta mira.</FieldHint>
           </div>
 
           <div>
@@ -85,36 +97,53 @@ export function SightCreate() {
                 </option>
               ))}
             </Select>
+            <FieldHint>Qué set aparece preseleccionado al abrir la mira.</FieldHint>
           </div>
 
           <div className="flex gap-3">
             <div className="flex-1">
-              <Label htmlFor="min">Escala mín.</Label>
+              <Label htmlFor="min" required>
+                Escala mín.
+              </Label>
               <Input
                 id="min"
                 type="number"
                 step="0.1"
                 value={scaleMin}
                 onChange={(e) => setScaleMin(e.target.value)}
+                placeholder="Ej: 0"
                 className="tnum"
                 required
               />
+              {fieldError('scaleMin') ? (
+                <FieldError>{fieldError('scaleMin')}</FieldError>
+              ) : (
+                <FieldHint>Número más chico de la escala (va arriba). Entre 0 y 100.</FieldHint>
+              )}
             </div>
             <div className="flex-1">
-              <Label htmlFor="max">Escala máx.</Label>
+              <Label htmlFor="max" required>
+                Escala máx.
+              </Label>
               <Input
                 id="max"
                 type="number"
                 step="0.1"
                 value={scaleMax}
                 onChange={(e) => setScaleMax(e.target.value)}
+                placeholder="Ej: 6"
                 className="tnum"
                 required
               />
+              {fieldError('scaleMax') ? (
+                <FieldError>{fieldError('scaleMax')}</FieldError>
+              ) : (
+                <FieldHint>Número más grande (va abajo). Debe ser mayor que la mínima.</FieldHint>
+              )}
             </div>
           </div>
 
-          {error && <FieldError>{error}</FieldError>}
+          {generalError && <FieldError>{generalError}</FieldError>}
           <Button type="submit" loading={mut.isPending}>
             Crear mira
           </Button>

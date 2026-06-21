@@ -1,13 +1,17 @@
 import { z } from 'zod';
 import { LIMITS } from '../constants';
 
-const scale = z.number().finite().min(LIMITS.scale.min).max(LIMITS.scale.max);
+const scale = z
+  .number({ invalid_type_error: 'Ingresá un número.' })
+  .finite('Ingresá un número válido.')
+  .min(LIMITS.scale.min, `El valor mínimo es ${LIMITS.scale.min}.`)
+  .max(LIMITS.scale.max, `El valor máximo es ${LIMITS.scale.max}.`);
 
 const optionalId = z.number().int().positive().nullable().optional();
 
 export const sightConfigCreateSchema = z
   .object({
-    name: z.string().trim().min(1, 'El nombre es obligatorio.').max(60),
+    name: z.string().trim().min(1, 'El nombre es obligatorio.').max(60, 'Máximo 60 caracteres.'),
     bowSetupId: optionalId,
     defaultArrowSetupId: optionalId,
     scaleMin: scale,

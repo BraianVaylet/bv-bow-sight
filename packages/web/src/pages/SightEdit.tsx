@@ -1,9 +1,19 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { type FormEvent, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Button, Card, FieldError, Input, Label, Select, Spinner } from '../components/ui';
+import {
+  Button,
+  Card,
+  FieldError,
+  FieldHint,
+  Input,
+  Label,
+  Select,
+  Spinner,
+} from '../components/ui';
 import { arrowApi, bowApi } from '../lib/api/setups';
 import { sightApi } from '../lib/api/sightConfigs';
+import { ApiClientError } from '../lib/apiClient';
 import { friendlyError } from '../lib/errorMessage';
 
 export function SightEdit() {
@@ -61,7 +71,9 @@ export function SightEdit() {
     },
   });
 
-  const error = save.error ? friendlyError(save.error) : null;
+  const apiError = save.error instanceof ApiClientError ? save.error : null;
+  const fieldError = (path: string) => apiError?.details?.find((d) => d.path === path)?.message;
+  const generalError = apiError?.details ? null : save.error ? friendlyError(save.error) : null;
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
     save.mutate();
@@ -81,11 +93,24 @@ export function SightEdit() {
       <Card>
         <form onSubmit={onSubmit} className="flex flex-col gap-4">
           <div>
-            <Label htmlFor="name">Nombre</Label>
-            <Input id="name" value={name} onChange={(e) => setName(e.target.value)} required />
+            <Label htmlFor="name" required>
+              Nombre
+            </Label>
+            <Input
+              id="name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Ej: Ultraview / Evo NXT"
+              required
+            />
+            {fieldError('name') ? (
+              <FieldError>{fieldError('name')}</FieldError>
+            ) : (
+              <FieldHint>Con qué nombre vas a identificar esta mira.</FieldHint>
+            )}
           </div>
           <div>
-            <Label htmlFor="bow">Setup de arco</Label>
+            <Label htmlFor="bow">Setup de arco (opcional)</Label>
             <Select id="bow" value={bowSetupId} onChange={(e) => setBowSetupId(e.target.value)}>
               <option value="">— Ninguno —</option>
               {bows?.map((b) => (
@@ -94,9 +119,10 @@ export function SightEdit() {
                 </option>
               ))}
             </Select>
+            <FieldHint>El arco con el que vas a usar esta mira.</FieldHint>
           </div>
           <div>
-            <Label htmlFor="arrow">Set por defecto</Label>
+            <Label htmlFor="arrow">Set por defecto (opcional)</Label>
             <Select
               id="arrow"
               value={defaultArrowSetupId}
@@ -109,34 +135,51 @@ export function SightEdit() {
                 </option>
               ))}
             </Select>
+            <FieldHint>Qué set aparece preseleccionado al abrir la mira.</FieldHint>
           </div>
           <div className="flex gap-3">
             <div className="flex-1">
-              <Label htmlFor="min">Escala mín.</Label>
+              <Label htmlFor="min" required>
+                Escala mín.
+              </Label>
               <Input
                 id="min"
                 type="number"
                 step="0.1"
                 value={scaleMin}
                 onChange={(e) => setScaleMin(e.target.value)}
+                placeholder="Ej: 0"
                 className="tnum"
                 required
               />
+              {fieldError('scaleMin') ? (
+                <FieldError>{fieldError('scaleMin')}</FieldError>
+              ) : (
+                <FieldHint>Número más chico de la escala (va arriba). Entre 0 y 100.</FieldHint>
+              )}
             </div>
             <div className="flex-1">
-              <Label htmlFor="max">Escala máx.</Label>
+              <Label htmlFor="max" required>
+                Escala máx.
+              </Label>
               <Input
                 id="max"
                 type="number"
                 step="0.1"
                 value={scaleMax}
                 onChange={(e) => setScaleMax(e.target.value)}
+                placeholder="Ej: 6"
                 className="tnum"
                 required
               />
+              {fieldError('scaleMax') ? (
+                <FieldError>{fieldError('scaleMax')}</FieldError>
+              ) : (
+                <FieldHint>Número más grande (va abajo). Debe ser mayor que la mínima.</FieldHint>
+              )}
             </div>
           </div>
-          {error && <FieldError>{error}</FieldError>}
+          {generalError && <FieldError>{generalError}</FieldError>}
           <Button type="submit" loading={save.isPending}>
             Guardar cambios
           </Button>
