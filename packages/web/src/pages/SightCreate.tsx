@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { type FormEvent, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Card, FieldError, FieldHint, Input, Label, Select } from '../components/ui';
+import { useOnlineStatus } from '../hooks/useOnlineStatus';
 import { arrowApi, bowApi } from '../lib/api/setups';
 import { sightApi } from '../lib/api/sightConfigs';
 import { ApiClientError } from '../lib/apiClient';
@@ -10,6 +11,7 @@ import { friendlyError } from '../lib/errorMessage';
 export function SightCreate() {
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const online = useOnlineStatus();
 
   const { data: bows } = useQuery({ queryKey: ['setups', 'bow-setups'], queryFn: bowApi.list });
   const { data: arrows } = useQuery({
@@ -144,8 +146,13 @@ export function SightCreate() {
           </div>
 
           {generalError && <FieldError>{generalError}</FieldError>}
-          <Button type="submit" loading={mut.isPending}>
-            Crear mira
+          <Button
+            type="submit"
+            loading={mut.isPending}
+            disabled={!online}
+            title={online ? undefined : 'Necesitás conexión para crear la mira'}
+          >
+            {online ? 'Crear mira' : 'Sin conexión'}
           </Button>
         </form>
       </Card>

@@ -12,12 +12,14 @@ import {
   TextArea,
 } from '../components/ui';
 import { Modal } from '../components/ui/Modal';
+import { useOnlineStatus } from '../hooks/useOnlineStatus';
 import { type SetupKind, setupsApi } from '../lib/api/setups';
 import { friendlyError } from '../lib/errorMessage';
 
 export function Setups({ kind, title }: { kind: SetupKind; title: string }) {
   const apiForKind = setupsApi(kind);
   const qc = useQueryClient();
+  const online = useOnlineStatus();
   const key = ['setups', kind];
 
   const { data, isLoading } = useQuery({ queryKey: key, queryFn: apiForKind.list });
@@ -36,7 +38,13 @@ export function Setups({ kind, title }: { kind: SetupKind; title: string }) {
   return (
     <div className="flex flex-col gap-4">
       <h1 className="text-lg font-semibold text-fg">{title}</h1>
-      <Button onClick={() => setCreating(true)}>+ Agregar</Button>
+      <Button
+        onClick={() => setCreating(true)}
+        disabled={!online}
+        title={online ? undefined : 'Necesitás conexión para agregar'}
+      >
+        {online ? '+ Agregar' : '+ Agregar (sin conexión)'}
+      </Button>
 
       {isLoading && (
         <div className="flex justify-center py-10 text-muted">

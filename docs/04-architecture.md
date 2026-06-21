@@ -198,7 +198,7 @@ por tests en `packages/shared/tests/sightMarks.test.ts`.
 | ADR-3 | Sesión opaca en cookie httpOnly | Revocable, no expuesta a XSS, simple | JWT en localStorage (riesgo XSS) |
 | ADR-4 | Math del ruler en `@bv/shared` puro | Testeable y reutilizable; UI tonta | Lógica dentro del componente React |
 | ADR-5 | Monorepo pnpm con `shared` | Tipos y validación únicos entre front/back | Duplicar tipos/schemas |
-| ADR-6 | Sin PWA/offline | Decisión del cliente; simplifica todo | Offline-first (sync, conflictos) |
+| ADR-6 | PWA instalable + offline **solo lectura** (§8) | App usada en el campo de tiro (sin señal): consultar miras y calcular alcanza; evita la complejidad de sync/conflictos | Sin offline (no abre sin red) / offline-first con cola de escritura y conflictos |
 | ADR-7 | "No es tuyo" → 404 | No filtra existencia de recursos | 403 (revela que el id existe) |
 | ADR-8 | PCHIP dentro del rango + parábola fuera (§4.5) | Honra las marcas medidas (interpolación exacta y monótona) y permite extrapolar (sala, lejanas) | Solo parábola (no pasa por las marcas) o solo spline (no extrapola) |
 
@@ -218,3 +218,35 @@ Internet ──HTTPS──► [Plataforma: Railway/Fly] ──► contenedor Nod
 - La imagen Docker **no** contiene la DB: el archivo vive en el volumen montado (`DATABASE_PATH=/data/...`). Sin volumen persistente, los datos se pierden en cada deploy (ver `11-hosting.md`).
 - Variables sensibles por entorno (ver `09-configuration.md`).
 - Escalado: pensado para **una instancia** (SQLite con WAL es single-writer). Para crecer, primero VPS más grande; recién después migrar de motor — no es el caso de este proyecto.
+
+---
+
+## 8. PWA y offline (solo lectura) ⭐
+
+La app se usa en el campo de tiro, donde suele no haber señal. Es una **PWA instalable** y
+funciona **offline en modo solo lectura**: sin conexión se puede abrir la app, ver las
+miras/marcas guardadas y usar la calculadora de distancias (el cálculo ya es client-side en
+`@bv/shared`). **Crear/editar/borrar requiere conexión** (sin cola de sync; ver ADR-6).
+
+**Piezas (todas en `@bv/web`):**
+- **`vite-plugin-pwa` (Workbox)** en [vite.config.ts](../packages/web/vite.config.ts): genera el
+  service worker y el manifest. Estrategias:
+  - Precache del app shell (assets con hash) + `navigateFallback` a `index.html` (deep links offline).
+  - `NetworkFirst` para los **GET de `/api/**`** (cache `api-cache`): offline, las queries (incluida
+    `/api/auth/me`) responden desde caché → React Query las ve como éxito, **sin tocar el manejo de
+    errores de las pantallas**. Las mutaciones nunca se cachean.
+  - `CacheFirst` para la fuente Chewy (Google Fonts).
+  - `registerType: 'autoUpdate'` (el SW se actualiza solo en cada release).
+- **Persistencia de la caché de datos** ([lib/persistClient.ts](../packages/web/src/lib/persistClient.ts)
+  + `PersistQueryClientProvider`): la caché de TanStack Query se guarda en `localStorage` (con
+  `buster` por versión y `gcTime` largo) para pintar los datos al instante en un arranque en frío
+  offline.
+- **Estado de conexión** ([hooks/useOnlineStatus.ts](../packages/web/src/hooks/useOnlineStatus.ts)):
+  banner "Sin conexión" en el `AppShell` y acciones de escritura deshabilitadas mientras no haya red.
+- **Instalación** ([components/InstallButton.tsx](../packages/web/src/components/InstallButton.tsx) +
+  [lib/pwaInstall.ts](../packages/web/src/lib/pwaInstall.ts)): botón que dispara `beforeinstallprompt`
+  (Android/Chrome) o muestra instrucciones en iOS. Íconos PNG 192/512 + maskable en `public/`.
+
+**Límites conocidos:** la **primera carga debe ser online** (para precachear shell + datos); si la
+fuente Chewy nunca se descargó, cae a `system-ui` (solo afecta el wordmark "BV"). El SW y el caché
+solo operan en **build de producción** (`devOptions.enabled: false`).

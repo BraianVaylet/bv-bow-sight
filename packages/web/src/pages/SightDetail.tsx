@@ -22,6 +22,7 @@ import {
 } from '../components/ui';
 import { Modal } from '../components/ui/Modal';
 import { SegmentedControl } from '../components/ui/SegmentedControl';
+import { useOnlineStatus } from '../hooks/useOnlineStatus';
 import { distanceApi } from '../lib/api/distances';
 import { arrowApi } from '../lib/api/setups';
 import { sightApi } from '../lib/api/sightConfigs';
@@ -43,6 +44,7 @@ export function SightDetail() {
   const [editing, setEditing] = useState<Distance | null>(null);
   const [showComputed, setShowComputed] = useState(false);
   const [query, setQuery] = useState('');
+  const online = useOnlineStatus();
 
   // Preselección de la botonera (set por defecto o el primero con distancias)
   useEffect(() => {
@@ -158,6 +160,8 @@ export function SightDetail() {
         <Button
           variant="ghost"
           className="px-2 text-xs"
+          disabled={!online}
+          title={online ? undefined : 'Necesitás conexión para editar la mira'}
           onClick={() => navigate(`/sight/${configId}/edit`)}
         >
           Editar mira
@@ -186,11 +190,15 @@ export function SightDetail() {
               scaleMin={data.scaleMin}
               scaleMax={data.scaleMax}
               markers={rulerMarkers}
-              onMarkerClick={(mid) => {
-                const dist = data.distances.find((d) => d.id === mid) ?? null;
-                setEditing(dist);
-                setFormOpen(true);
-              }}
+              onMarkerClick={
+                online
+                  ? (mid) => {
+                      const dist = data.distances.find((d) => d.id === mid) ?? null;
+                      setEditing(dist);
+                      setFormOpen(true);
+                    }
+                  : undefined
+              }
             />
           </Card>
         )}
@@ -285,12 +293,14 @@ export function SightDetail() {
       {/* Acción */}
       <Button
         className="w-full"
+        disabled={!online}
+        title={online ? undefined : 'Necesitás conexión para cargar una marca'}
         onClick={() => {
           setEditing(null);
           setFormOpen(true);
         }}
       >
-        + Nueva marca
+        {online ? '+ Nueva marca' : '+ Nueva marca (sin conexión)'}
       </Button>
 
       {formOpen && (

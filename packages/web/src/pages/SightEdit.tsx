@@ -11,6 +11,7 @@ import {
   Select,
   Spinner,
 } from '../components/ui';
+import { useOnlineStatus } from '../hooks/useOnlineStatus';
 import { arrowApi, bowApi } from '../lib/api/setups';
 import { sightApi } from '../lib/api/sightConfigs';
 import { ApiClientError } from '../lib/apiClient';
@@ -21,6 +22,7 @@ export function SightEdit() {
   const configId = Number(id);
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const online = useOnlineStatus();
 
   const { data, isLoading } = useQuery({
     queryKey: ['sight', configId],
@@ -180,8 +182,13 @@ export function SightEdit() {
             </div>
           </div>
           {generalError && <FieldError>{generalError}</FieldError>}
-          <Button type="submit" loading={save.isPending}>
-            Guardar cambios
+          <Button
+            type="submit"
+            loading={save.isPending}
+            disabled={!online}
+            title={online ? undefined : 'Necesitás conexión para guardar'}
+          >
+            {online ? 'Guardar cambios' : 'Sin conexión'}
           </Button>
         </form>
       </Card>

@@ -199,7 +199,7 @@ Para cada listado/recurso, contemplar: **cargando**, **vacío**, **error** (con 
 ## 8. Fuera de alcance (MVP)
 
 - Servicio de autenticación externo (queda para 2da instancia).
-- Offline / PWA / sincronización (decidido: web online común).
+- **Offline de escritura / sincronización** con cola y resolución de conflictos. (La app **sí** es PWA instalable y funciona **offline en solo lectura** —consultar miras y calcular distancias—; ver `04-architecture.md` §8.)
 - Compartir miras entre usuarios; roles; multi-idioma.
 - Importación/exportación de datos, fotos, gráficos de agrupación.
 - Inversión de orientación del ruler configurable por el usuario (se deja preparado el código, pero la UI del MVP usa mín-arriba fijo).

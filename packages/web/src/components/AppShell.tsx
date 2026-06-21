@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useLogout } from '../hooks/useAuth';
 import { ACCENTS, useTheme } from '../theme';
+import { ConnectionNotice, OfflineChip } from './ConnectionNotice';
 import { InstallButton } from './InstallButton';
 import { Button } from './ui';
 
@@ -124,6 +125,8 @@ export function AppShell() {
           <span className="font-bold text-fg text-lg tracking-tight">bow sight</span>
         </button>
 
+        <OfflineChip />
+
         <InstallButton />
 
         <AccentPicker />
@@ -140,6 +143,8 @@ export function AppShell() {
           Salir
         </Button>
       </header>
+
+      <ConnectionNotice />
 
       <main className="flex flex-1 flex-col px-3 py-4">
         <Outlet />

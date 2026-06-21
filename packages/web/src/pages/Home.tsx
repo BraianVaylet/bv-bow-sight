@@ -1,13 +1,30 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Button, Card, EmptyState, Spinner } from '../components/ui';
+import { useOnlineStatus } from '../hooks/useOnlineStatus';
 import { sightApi } from '../lib/api/sightConfigs';
 
 export function Home() {
+  const qc = useQueryClient();
+  const online = useOnlineStatus();
   const { data, isLoading, isError } = useQuery({
     queryKey: ['sights'],
     queryFn: sightApi.list,
   });
+
+  // Con conexión, precargamos el detalle de cada mira para poder verlas offline.
+  // (La persistencia solo guarda lo ya pedido; el detalle nunca se pide desde Home.)
+  useEffect(() => {
+    if (!online || !data) return;
+    for (const s of data) {
+      qc.prefetchQuery({
+        queryKey: ['sight', s.id],
+        queryFn: () => sightApi.detail(s.id),
+        staleTime: 60_000,
+      });
+    }
+  }, [online, data, qc]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -25,9 +42,15 @@ export function Home() {
         </Link>
       </div>
 
-      <Link to="/sight/new">
-        <Button className="w-full">+ Nueva mira</Button>
-      </Link>
+      {online ? (
+        <Link to="/sight/new">
+          <Button className="w-full">+ Nueva mira</Button>
+        </Link>
+      ) : (
+        <Button className="w-full" disabled title="Necesitás conexión para crear una mira">
+          + Nueva mira (sin conexión)
+        </Button>
+      )}
 
       {isLoading && (
         <div className="flex justify-center py-12 text-muted">
