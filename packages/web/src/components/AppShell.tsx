@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useLogout } from '../hooks/useAuth';
 import { ACCENTS, useTheme } from '../theme';
-import { LogoFull } from './Logo';
 import { Button } from './ui';
 
 /** Selector de color base de la app (popover con muestras). */
@@ -113,9 +112,15 @@ export function AppShell() {
           type="button"
           onClick={() => navigate('/')}
           aria-label="BV bow sight"
-          className="mr-auto flex items-center rounded-lg text-fg transition-opacity hover:opacity-80"
+          className="mr-auto flex items-baseline gap-1 rounded-lg transition-opacity hover:opacity-80"
         >
-          <LogoFull className="h-7 w-auto" />
+          <span
+            className="text-2xl leading-none text-primary"
+            style={{ fontFamily: 'Chewy, system-ui, sans-serif' }}
+          >
+            BV
+          </span>
+          <span className="font-bold text-fg text-lg tracking-tight">bow sight</span>
         </button>
 
         <AccentPicker />

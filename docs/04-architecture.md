@@ -31,7 +31,7 @@ Aplicación de **un solo servicio**: un proceso Node corriendo Hono que expone l
 
 `pnpm` workspaces con tres paquetes (detalle en `06-technical-spec.md`):
 
-- **`@bv/shared`** — Zod schemas, tipos inferidos, constantes de validación y **math puro del ruler**. Sin dependencias de framework. Lo consumen api, web y los tests.
+- **`@bv/shared`** — Zod schemas, tipos inferidos, constantes de validación, **math puro del ruler** y el **cálculo de marcas de mira** (PCHIP + parábola, §4.5). Sin dependencias de framework. Lo consumen api, web y los tests.
 - **`@bv/api`** — Hono + better-sqlite3. Capas internas:
   ```
   routes/        Hono routers (parseo, status, llaman a services)
@@ -147,20 +147,45 @@ function layoutMarkers(distances, min, max, height, labelHeight = 22) {
 }
 ```
 
-El render (SVG) dibuja, por cada distancia: una marca/línea en `anchorY` sobre la regla y, a la derecha, la etiqueta `"{distanceM} m"` (+ valor de escala chico) en `labelY`, unidas por una leader line si difieren. Detalle visual en `05-ui-design-system.md`.
+El render (SVG) dibuja, por cada distancia: una marca/línea en `anchorY` sobre la regla y, a la derecha, un chip de **una línea** `"{distanceM} m · esc {scaleValue}"` en `labelY` (el valor de escala en el color base), unidos por una leader line si difieren. El chip tiene tres estilos según el origen de la marca (`variant`): **medida** (color base), **calculada** (gris punteado, con `≈` si es extrapolada) y **consultada** (invertida, color propio). Detalle visual en `05-ui-design-system.md`.
 
 ### 4.4 Por qué SVG
 
 Líneas nítidas a cualquier densidad, posicionamiento por coordenadas exacto, texto fácil de ubicar, escala sin pérdida y costo de render bajo (decenas de nodos). Encaja con el requisito de performance.
+
+### 4.5 Cálculo de marcas de mira (PCHIP + parábola) ⭐
+
+Vive en **`@bv/shared`** (`sightMarks.ts`) como funciones puras. A partir de las marcas
+medidas de un set de flechas construye un modelo `escala = f(distancia)`:
+
+- **Interpolación (dentro del rango medido):** spline cúbico monótono **PCHIP**
+  (Fritsch–Carlson). Pasa **exacto** por las marcas, es suave y **monótono** (nunca decrece,
+  sin overshoot) → honra lo que el arquero realmente tiró.
+- **Extrapolación (fuera del rango):** **parábola de mínimos cuadrados** (`a·d² + b·d + c`,
+  resuelta por Cramer). Sirve para la de sala (18 m) y distancias por encima del máximo.
+- **Control de calidad:** los **residuos** de la parábola (`maxAbsResidual`) indican qué tan
+  "parabólicos" son los datos; un residuo grande delata una marca probablemente mal medida.
+
+```ts
+const model = createSightModel(points);   // points: { distance, mark }[]  (>= 5 en la práctica)
+model.markAt(25);   // { mark, interpolated: true }   -> PCHIP (dentro del rango)
+model.markAt(18);   // { mark, interpolated: false }  -> parábola (extrapolación, sala)
+```
+
+Helpers asociados: `intermediateDistances` (distancia media entre marcas consecutivas) y
+`computeSightMarks` (genera las intermedias + sala, filtrando las ya cargadas y las que caen
+fuera de `[escala mín, máx]`). El gate de desbloqueo es `SIGHT_CALC_MIN_MARKS` (5) marcas por
+set; la de sala usa `INDOOR_DISTANCE_M` (18). El módulo es framework-agnóstico y está cubierto
+por tests en `packages/shared/tests/sightMarks.test.ts`.
 
 ---
 
 ## 5. Estado del frontend
 
 - **Estado servidor:** TanStack Query v5 (cache, revalidación, *optimistic updates* en distancias). Es la fuente de los datos remotos.
-- **Estado UI local:** `useState`/`useReducer` (set de flechas seleccionado en la botonera, formularios). Sin Redux ni store global pesado.
+- **Estado UI local:** `useState`/`useReducer` (set de flechas seleccionado en la botonera, formularios, toggle de cálculo y distancia consultada en la vista ruler). Sin Redux ni store global pesado.
 - **Auth:** query `useMe` (sobre `GET /api/auth/me`) + guard de rutas.
-- **Tema:** contexto liviano + `localStorage` (esto es una app real en navegador; aplica sin restricciones).
+- **Tema:** contexto liviano + `localStorage`: modo claro/oscuro y **color base** elegible (verde por defecto + paleta), con el texto sobre el color calculado por contraste. Esto es una app real en navegador; aplica sin restricciones.
 
 ---
 
@@ -175,6 +200,7 @@ Líneas nítidas a cualquier densidad, posicionamiento por coordenadas exacto, t
 | ADR-5 | Monorepo pnpm con `shared` | Tipos y validación únicos entre front/back | Duplicar tipos/schemas |
 | ADR-6 | Sin PWA/offline | Decisión del cliente; simplifica todo | Offline-first (sync, conflictos) |
 | ADR-7 | "No es tuyo" → 404 | No filtra existencia de recursos | 403 (revela que el id existe) |
+| ADR-8 | PCHIP dentro del rango + parábola fuera (§4.5) | Honra las marcas medidas (interpolación exacta y monótona) y permite extrapolar (sala, lejanas) | Solo parábola (no pasa por las marcas) o solo spline (no extrapola) |
 
 ---
 

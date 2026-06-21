@@ -129,12 +129,13 @@ Muestra:
 3. **Regla vertical (ruler):** ocupa el alto disponible, sobre el lado **izquierdo**. Imita la escala de una mira real:
    - Valor mínimo arriba, máximo abajo (la escala **crece hacia abajo**).
    - Marcas tipo regla: **1 mm** (rayita chica), **5 mm** (mediana), **1 cm** (grande, con número).
-4. **Distancias** cargadas (del set seleccionado): cada una se ubica en su posición exacta de la escala, mostrando los **metros** que representa. Se ven **todas al mismo tiempo**.
-5. **Botón "+ Nueva distancia".**
+4. **Distancias** cargadas (del set seleccionado): cada una se ubica en su posición exacta de la escala, mostrando en un chip de **una línea** los **metros** y su **valor de escala** (este último en el color base). Se ven **todas al mismo tiempo**.
+5. **Distancias calculadas** (cuando se desbloquea, ver §5.7): intermedias, de sala y la consultada, con estilo visual distinto al de las medidas.
+6. **Botón "+ Nueva distancia".**
 
 Interacciones:
 - Cambiar set en la botonera → se actualizan las distancias visibles sobre la misma regla.
-- Tap en una distancia → editar / eliminar.
+- Tap en una distancia **medida** → editar / eliminar. Las calculadas no son editables.
 
 Reglas:
 - Si la mira no tiene distancias → estado vacío con CTA para cargar la primera.
@@ -149,6 +150,32 @@ Campos:
 - `observaciones` — opcional (texto).
 
 Se pueden crear todas las distancias que se quieran. **Editar** y **eliminar** disponibles. Todas se ven a la vez en la vista ruler (filtradas por set de flechas vía botonera).
+
+### 5.7 Cálculo de distancias intermedias ⭐
+
+A partir de las marcas que el arquero **midió tirando**, la app calcula la posición de la
+mira para distancias que no disparó. El alcance es **por set de flechas seleccionado** (cada
+set tiene su propia balística).
+
+**Desbloqueo:** mientras el set seleccionado tenga **menos de 5** marcas, se muestra un aviso
+con el progreso (`X/5`). Al llegar a **5 o más** aparece un botón **"Calcular distancias
+intermedias"** que activa la sección de cálculo.
+
+**Qué se muestra al activarlo:**
+- Sobre el ruler, las **distancias intermedias** (la distancia media entre cada par de marcas
+  consecutivas; ej. con 20/30/40/50/60 → 25/35/45/55) más la de **sala (18 m)**, todas con un
+  estilo distinto al de las medidas (chip punteado/gris). Las **extrapoladas** (fuera del rango
+  medido, p. ej. la de 18) se marcan con `≈` y la etiqueta "estimada".
+- Un **gráfico** de la curva escala ↔ distancia debajo del ruler: la interpolación medida
+  (sólida) y la extrapolación (punteada), con un indicador de calidad del ajuste.
+- Una **calculadora**: el arquero ingresa **cualquier** distancia y obtiene su valor de escala
+  al instante, indicando si es *medido* (interpolado) o *estimado* (extrapolado). Esa distancia
+  se resalta sobre el ruler con un **color propio**, distinto de las medidas y las intermedias.
+
+**Modelo (ver `04-architecture.md` §4.5):** spline cúbico monótono **PCHIP** dentro del rango
+medido (pasa exacto por las marcas, nunca decrece) y **parábola de mínimos cuadrados** para
+extrapolar fuera del rango. Las marcas calculadas que caen fuera de `[escala mín, máx]` no se
+muestran.
 
 ---
 

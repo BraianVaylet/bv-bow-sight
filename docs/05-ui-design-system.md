@@ -166,10 +166,23 @@ La pantalla más importante. La lógica de cálculo está en `@bv/shared` (ver `
 ### 7.3 Marcadores de distancia
 
 Por cada distancia del set seleccionado:
-- **Pin** sobre la regla en la posición exacta (`anchorY`): un círculo/diana en `--color-primary` (eco del favicon) con una pequeña línea horizontal que entra hacia la etiqueta.
-- **Etiqueta** a la derecha: `"{distanceM} m"` en 18px/700 dorado-sobre-oscuro (o `--color-text` con realce), y debajo el valor de escala chico entre paréntesis `(1.5)` en `--color-text-muted`.
+- **Pin** sobre la regla en la posición exacta (`anchorY`): un círculo en `--color-primary` (eco del favicon) con una pequeña línea horizontal que entra hacia la etiqueta.
+- **Etiqueta** a la derecha: chip de **una sola línea** `"{distanceM} m · esc {scaleValue}"` para ahorrar espacio; los metros en `--color-fg` y el valor de escala en el **color base** (`--color-primary-ink`). Números tabulares.
+- **Tres estilos según `variant`** (ver §7.3.1).
 - **Anti-solape:** si dos quedan muy cerca, la etiqueta se corre hacia abajo y se dibuja una **leader line** desde el pin real (`anchorY`) hasta la etiqueta (`labelY`). Lógica en `layoutMarkers`.
-- **Tap** en un marcador → abre acciones (editar / eliminar) de esa distancia.
+- **Tap** en un marcador **medido** → abre acciones (editar / eliminar). Las marcas calculadas/consultadas no son interactivas.
+
+#### 7.3.1 Tipos de marca (variants)
+
+Cuando se desbloquea el cálculo de distancias intermedias (`01-functional-spec.md` §5.7) conviven tres estilos, claramente diferenciables:
+
+| variant | Origen | Pin | Chip | Texto |
+|---------|--------|-----|------|-------|
+| `user` | Marca medida por el arquero | Lleno, color base | Relleno `--color-surface-2`, borde sólido | Distancia en `--color-fg`, escala en color base |
+| `computed` | Intermedia / sala (calculada) | Hueco, `--color-muted` | Transparente, borde **punteado** gris | Todo en `--color-muted`; prefijo `≈` si es **extrapolada** |
+| `query` | Distancia consultada en la calculadora | Lleno, `--color-fg` | **Invertido** (relleno `--color-fg`) | Texto en `--color-bg` para máximo contraste |
+
+El estilo `query` está pensado para que la distancia que el arquero consulta "salte a la vista" sobre el resto sin depender del color base (que ya usan las medidas).
 
 ### 7.4 Botonera de sets de flechas
 
@@ -183,7 +196,15 @@ Por cada distancia del set seleccionado:
 - **Cargando:** skeleton de la regla + spinner diana.
 - **Error:** mensaje + reintentar (la regla no se rompe).
 
-### 7.6 Responsive
+### 7.6 Sección de cálculo (distancias intermedias)
+
+Aparece debajo de la regla al desbloquearse (`01-functional-spec.md` §5.7):
+- **Pre-desbloqueo:** card punteada con el progreso `X/5` y qué falta. Al llegar a 5, botón secundario "Calcular distancias intermedias".
+- **Curva escala ↔ distancia:** gráfico SVG con la interpolación medida (línea sólida en color base) y la extrapolación (línea **punteada** gris), los puntos medidos y un indicador `ajuste ±Δ` (residuo máximo). Resalta la distancia consultada con una guía en `--color-fg`.
+- **Calculadora:** input de distancia (con sufijo "m") y un recuadro de resultado `"{d} m → {escala}"` que indica *medido* / *estimado*. El cálculo es inmediato (sin botón).
+- Con el cálculo activo, la regla pasa a una altura mínima y el contenido se vuelve **scrolleable**; el botón "+ Nueva distancia" queda fijo abajo.
+
+### 7.7 Responsive
 - Mobile: regla ocupa ~30–40% del ancho a la izquierda; etiquetas a la derecha.
 - Desktop: mismo patrón centrado, máx ~560px; la regla puede ser un poco más alta. No cambiar la orientación.
 - Respetar `prefers-reduced-motion`: sin animación de la diana ni transiciones llamativas.

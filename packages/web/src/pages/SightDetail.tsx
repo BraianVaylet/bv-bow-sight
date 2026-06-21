@@ -137,7 +137,7 @@ export function SightDetail() {
             id: QUERY_ID,
             scaleValue: queryResult.mark,
             distanceM: queryNum,
-            variant: 'computed',
+            variant: 'query',
             interpolated: queryResult.interpolated,
           },
         ]

@@ -4,18 +4,67 @@ import { useEffect, useRef, useState } from 'react';
 const PAD = 18; // margen vertical para no recortar mín/máx
 const TRACK_X = 58; // x del riel (deja lugar a los números de cm a la izquierda)
 const MARKER_X = TRACK_X + 44; // x donde arranca el chip del marcador
-const LABEL_H = 38; // alto estimado del chip (anti-solape)
+const LABEL_H = 26; // alto del chip de una línea (anti-solape)
 
 /** Recorta a 2 decimales sin ceros sobrantes (1.5 → "1.5", 0.72 → "0.72"). */
 function fmtScale(v: number): string {
   return Number(v.toFixed(2)).toString();
 }
 
+export type MarkerVariant = 'user' | 'computed' | 'query';
+
+/** Estilos por tipo de marca: medida (color base), intermedia (gris), consultada (invertida). */
+const STYLES: Record<
+  MarkerVariant,
+  {
+    dot: string;
+    hollowDot: boolean;
+    chipFill: string;
+    chipStroke: string;
+    dashed: boolean;
+    dist: string;
+    scale: string;
+    muted: string;
+  }
+> = {
+  user: {
+    dot: 'var(--color-primary)',
+    hollowDot: false,
+    chipFill: 'var(--color-surface-2)',
+    chipStroke: 'var(--color-border)',
+    dashed: false,
+    dist: 'var(--color-fg)',
+    scale: 'var(--color-primary-ink)',
+    muted: 'var(--color-muted)',
+  },
+  computed: {
+    dot: 'var(--color-muted)',
+    hollowDot: true,
+    chipFill: 'transparent',
+    chipStroke: 'var(--color-muted)',
+    dashed: true,
+    dist: 'var(--color-muted)',
+    scale: 'var(--color-muted)',
+    muted: 'var(--color-muted)',
+  },
+  // Consultada: chip lleno en color de texto (invertido) para que resalte sobre el resto.
+  query: {
+    dot: 'var(--color-fg)',
+    hollowDot: false,
+    chipFill: 'var(--color-fg)',
+    chipStroke: 'var(--color-fg)',
+    dashed: false,
+    dist: 'var(--color-bg)',
+    scale: 'var(--color-bg)',
+    muted: 'var(--color-bg)',
+  },
+};
+
 export interface RulerMarker extends MarkerInput {
   notes?: string | null;
-  /** 'user' = cargada por el arquero; 'computed' = calculada (intermedia/sala). */
-  variant?: 'user' | 'computed';
-  /** Solo para calculadas: true = interpolada (PCHIP); false = extrapolada (estimada). */
+  /** 'user' = cargada; 'computed' = calculada; 'query' = consultada en la calculadora. */
+  variant?: MarkerVariant;
+  /** Solo para calculadas/consultada: true = interpolada (PCHIP); false = extrapolada. */
   interpolated?: boolean;
 }
 
@@ -47,6 +96,7 @@ export function Ruler({ scaleMin, scaleMax, markers, onMarkerClick }: RulerProps
   const laid = layoutMarkers(markers, scaleMin, scaleMax, drawH, LABEL_H);
   // layoutMarkers preserva el id pero no los campos extra: los recuperamos por id.
   const byId = new Map(markers.map((m) => [m.id, m]));
+  const chipW = size.w - MARKER_X - 6;
 
   return (
     <div ref={wrapRef} className="h-full w-full">
@@ -102,76 +152,67 @@ export function Ruler({ scaleMin, scaleMax, markers, onMarkerClick }: RulerProps
           {/* Marcadores de distancia */}
           {laid.map((m) => {
             const src = byId.get(m.id);
-            const computed = src?.variant === 'computed';
-            const estimated = computed && src?.interpolated === false;
+            const variant: MarkerVariant = src?.variant ?? 'user';
+            const s = STYLES[variant];
+            const isUser = variant === 'user';
+            const estimated = !isUser && src?.interpolated === false;
             const pushed = Math.abs(m.labelY - m.anchorY) > 0.5;
-            const dotColor = computed ? 'var(--color-muted)' : 'var(--color-primary)';
             return (
-              <g key={m.id} className={computed ? undefined : 'cursor-pointer'}>
+              <g key={m.id} className={isUser ? 'cursor-pointer' : undefined}>
                 {/* Línea guía si la etiqueta se corrió */}
                 {pushed && (
                   <path
                     d={`M ${TRACK_X + 2} ${m.anchorY} C ${MARKER_X - 12} ${m.anchorY}, ${MARKER_X - 12} ${m.labelY}, ${MARKER_X} ${m.labelY}`}
                     fill="none"
-                    stroke={dotColor}
+                    stroke={s.dot}
                     strokeOpacity={0.5}
                     strokeWidth={1.5}
                   />
                 )}
-                {/* Punto sobre el riel (posición real): lleno = usuario, hueco = calculada */}
+                {/* Punto sobre el riel (posición real) */}
                 <circle
                   cx={TRACK_X}
                   cy={m.anchorY}
                   r={4.5}
-                  fill={computed ? 'var(--color-surface)' : 'var(--color-primary)'}
-                  stroke={dotColor}
-                  strokeWidth={computed ? 2 : 0}
+                  fill={s.hollowDot ? 'var(--color-surface)' : s.dot}
+                  stroke={s.dot}
+                  strokeWidth={s.hollowDot ? 2 : 0}
                 />
 
-                {/* Chip de distancia */}
+                {/* Chip de una línea: "20 m · esc 0.4" */}
                 <g transform={`translate(${MARKER_X} ${m.labelY})`}>
                   <rect
                     x={0}
                     y={-LABEL_H / 2}
-                    width={size.w - MARKER_X - 6}
+                    width={chipW}
                     height={LABEL_H}
-                    rx={9}
-                    fill={computed ? 'transparent' : 'var(--color-surface-2)'}
-                    stroke={computed ? dotColor : 'var(--color-border)'}
-                    strokeDasharray={computed ? '4 3' : undefined}
+                    rx={8}
+                    fill={s.chipFill}
+                    stroke={s.chipStroke}
+                    strokeDasharray={s.dashed ? '4 3' : undefined}
                   />
-                  <text
-                    x={12}
-                    y={-3}
-                    fontSize={15}
-                    fontWeight={700}
-                    fill={computed ? 'var(--color-muted)' : 'var(--color-fg)'}
-                  >
-                    <tspan className="tnum">
+                  <text x={10} y={1} dominantBaseline="middle" fontSize={13}>
+                    <tspan className="tnum" fontWeight={700} fill={s.dist}>
                       {estimated ? '≈' : ''}
                       {m.distanceM}
                     </tspan>
-                    <tspan fontSize={11} fontWeight={500} fill="var(--color-muted)">
+                    <tspan fontSize={10} fontWeight={500} fill={s.muted}>
                       {' '}
-                      m
+                      m ·{' '}
+                    </tspan>
+                    <tspan fontSize={11} fill={s.muted}>
+                      esc{' '}
+                    </tspan>
+                    <tspan className="tnum" fontWeight={600} fill={s.scale}>
+                      {fmtScale(m.scaleValue)}
                     </tspan>
                   </text>
-                  <text
-                    x={12}
-                    y={13}
-                    fontSize={11}
-                    className="tnum"
-                    fill={computed ? 'var(--color-muted)' : 'var(--color-primary-ink)'}
-                  >
-                    escala {fmtScale(m.scaleValue)}
-                    {estimated ? ' · estimada' : ''}
-                  </text>
                   {/* Hit area para tap (solo marcas del usuario) */}
-                  {!computed && (
+                  {isUser && (
                     <rect
                       x={0}
                       y={-LABEL_H / 2}
-                      width={size.w - MARKER_X - 6}
+                      width={chipW}
                       height={LABEL_H}
                       fill="transparent"
                       onClick={() => onMarkerClick?.(m.id)}
