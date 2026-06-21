@@ -1,6 +1,7 @@
 import type { Setup } from '@bv/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { type FormEvent, useState } from 'react';
+import { ArrowIcon, BowIcon } from '../components/Icons';
 import {
   Button,
   Card,
@@ -37,7 +38,14 @@ export function Setups({ kind, title }: { kind: SetupKind; title: string }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-lg font-semibold text-fg">{title}</h1>
+      <h1 className="flex items-center gap-2 text-lg font-semibold text-fg">
+        {kind === 'bow-setups' ? (
+          <BowIcon className="h-5 w-5 text-primary-ink" />
+        ) : (
+          <ArrowIcon className="h-5 w-5 text-primary-ink" />
+        )}
+        {title}
+      </h1>
       <Button
         onClick={() => setCreating(true)}
         disabled={!online}
@@ -117,6 +125,14 @@ function SetupFormModal({
   const [name, setName] = useState(setup?.name ?? '');
   const [notes, setNotes] = useState(setup?.notes ?? '');
 
+  const isBow = kind === 'bow-setups';
+  const namePlaceholder = isBow
+    ? 'Ingresá un nombre para tu setup de arco'
+    : 'Ingresá un nombre para tu set de flechas';
+  const notesPlaceholder = isBow
+    ? 'Ingresá los datos de tu configuración actual (ATA, Brace Height, Draw Length, Draw Weight, Let-Off, etc.)'
+    : 'Ingresá los datos de tu flecha (spine, puntas, vanes, largo, etc.)';
+
   const mut = useMutation({
     mutationFn: () =>
       setup ? apiForKind.update(setup.id, { name, notes }) : apiForKind.create({ name, notes }),
@@ -134,11 +150,23 @@ function SetupFormModal({
       <form onSubmit={onSubmit} className="flex flex-col gap-4">
         <div>
           <Label htmlFor="name">Nombre</Label>
-          <Input id="name" value={name} onChange={(e) => setName(e.target.value)} required />
+          <Input
+            id="name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder={namePlaceholder}
+            required
+          />
         </div>
         <div>
           <Label htmlFor="notes">Observaciones</Label>
-          <TextArea id="notes" value={notes} onChange={(e) => setNotes(e.target.value)} required />
+          <TextArea
+            id="notes"
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder={notesPlaceholder}
+            required
+          />
         </div>
         {error && <FieldError>{error}</FieldError>}
         <div className="flex gap-2">

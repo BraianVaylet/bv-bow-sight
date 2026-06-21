@@ -71,19 +71,32 @@ function applyAccent(base: string, theme: Theme): void {
   const strong = mix(base, '#000000', 0.16); // hover, un poco más oscuro
   // Tinta para textos/links sobre el fondo: aclarar en oscuro, oscurecer en claro.
   const ink = theme === 'dark' ? mix(base, '#ffffff', 0.3) : mix(base, '#000000', 0.35);
+  // Tinte suave para fondos/selección: casi blanco en claro, casi negro en oscuro.
+  const soft = theme === 'dark' ? mix(base, '#000000', 0.86) : mix(base, '#ffffff', 0.88);
 
   const root = document.documentElement.style;
   root.setProperty('--primary', base);
   root.setProperty('--primary-strong', strong);
   root.setProperty('--primary-ink', ink);
+  root.setProperty('--primary-soft', soft);
   root.setProperty('--on-primary', onPrimary);
 }
 
+/** Color de fondo del navegador (barra de estado) por tema. */
+const THEME_COLOR: Record<Theme, string> = { light: '#f7f8f3', dark: '#191b16' };
+
+function syncThemeColor(theme: Theme): void {
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', THEME_COLOR[theme]);
+}
+
 function initialTheme(): Theme {
+  // El script anti-FOUC de index.html ya resolvió y aplicó el tema antes del paint.
+  const applied = document.documentElement.dataset.theme;
+  if (applied === 'light' || applied === 'dark') return applied;
   const stored = localStorage.getItem(THEME_KEY) as Theme | null;
   if (stored === 'light' || stored === 'dark') return stored;
-  // Default oscuro, salvo que el sistema pida claro explícitamente.
-  return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+  // Default claro (cremoso), salvo que el sistema pida oscuro.
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 }
 
 function initialAccent(): AccentId {
@@ -112,6 +125,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
     localStorage.setItem(THEME_KEY, theme);
+    syncThemeColor(theme);
   }, [theme]);
 
   useEffect(() => {

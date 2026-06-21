@@ -2,6 +2,7 @@ import type { LoginInput, PublicUser, RegisterInput } from '@bv/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { authApi } from '../lib/api/auth';
 import { ApiClientError } from '../lib/apiClient';
+import { clearEnteredThisSession } from '../lib/preferences';
 
 const ME_KEY = ['me'];
 
@@ -43,6 +44,7 @@ export function useLogout() {
   return useMutation({
     mutationFn: () => authApi.logout(),
     onSuccess: () => {
+      clearEnteredThisSession();
       qc.setQueryData(ME_KEY, null);
       qc.clear();
     },

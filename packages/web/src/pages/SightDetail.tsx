@@ -8,6 +8,8 @@ import type { Distance } from '@bv/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { type FormEvent, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { StarFilledIcon, StarIcon } from '../components/Icons';
+import { MarkZoomControl } from '../components/MarkZoomControl';
 import { Ruler, type RulerMarker } from '../components/Ruler';
 import { SightCurveChart } from '../components/SightCurveChart';
 import {
@@ -26,7 +28,9 @@ import { useOnlineStatus } from '../hooks/useOnlineStatus';
 import { distanceApi } from '../lib/api/distances';
 import { arrowApi } from '../lib/api/setups';
 import { sightApi } from '../lib/api/sightConfigs';
+import { formatDateTime } from '../lib/datetime';
 import { friendlyError } from '../lib/errorMessage';
+import { getDefaultSightId, getMarkZoom, setDefaultSightId, setMarkZoom } from '../lib/preferences';
 
 export function SightDetail() {
   const { id } = useParams();
@@ -45,6 +49,23 @@ export function SightDetail() {
   const [showComputed, setShowComputed] = useState(false);
   const [query, setQuery] = useState('');
   const online = useOnlineStatus();
+
+  // Zoom de las marcas (preferencia local, persistida).
+  const [zoom, setZoom] = useState(getMarkZoom);
+  useEffect(() => {
+    setMarkZoom(zoom);
+  }, [zoom]);
+
+  // Mira por defecto: al abrir la app se entra directo a ella (ver Home).
+  const [isDefault, setIsDefault] = useState(() => getDefaultSightId() === configId);
+  useEffect(() => {
+    setIsDefault(getDefaultSightId() === configId);
+  }, [configId]);
+  const toggleDefault = () => {
+    const next = !isDefault;
+    setDefaultSightId(next ? configId : null);
+    setIsDefault(next);
+  };
 
   // Preselección de la botonera (set por defecto o el primero con distancias)
   useEffect(() => {
@@ -157,6 +178,21 @@ export function SightDetail() {
             {data.bowSetupName ?? 'Sin arco'} · escala {data.scaleMin}–{data.scaleMax}
           </p>
         </div>
+        <button
+          type="button"
+          onClick={toggleDefault}
+          aria-pressed={isDefault}
+          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg hover:bg-surface-2 ${
+            isDefault ? 'text-primary-ink' : 'text-muted'
+          }`}
+          title={
+            isDefault
+              ? 'Mira predeterminada: entrás directo acá al abrir la app. Tocá para quitar.'
+              : 'Marcar como predeterminada: entrar directo a esta mira al abrir la app.'
+          }
+        >
+          {isDefault ? <StarFilledIcon className="h-5 w-5" /> : <StarIcon className="h-5 w-5" />}
+        </button>
         <Button
           variant="ghost"
           className="px-2 text-xs"
@@ -186,20 +222,26 @@ export function SightDetail() {
           />
         ) : (
           <Card className="min-h-[360px] flex-1 p-2">
-            <Ruler
-              scaleMin={data.scaleMin}
-              scaleMax={data.scaleMax}
-              markers={rulerMarkers}
-              onMarkerClick={
-                online
-                  ? (mid) => {
-                      const dist = data.distances.find((d) => d.id === mid) ?? null;
-                      setEditing(dist);
-                      setFormOpen(true);
-                    }
-                  : undefined
-              }
-            />
+            <div className="flex h-full gap-1">
+              <div className="min-w-0 flex-1">
+                <Ruler
+                  scaleMin={data.scaleMin}
+                  scaleMax={data.scaleMax}
+                  markers={rulerMarkers}
+                  zoom={zoom}
+                  onMarkerClick={
+                    online
+                      ? (mid) => {
+                          const dist = data.distances.find((d) => d.id === mid) ?? null;
+                          setEditing(dist);
+                          setFormOpen(true);
+                        }
+                      : undefined
+                  }
+                />
+              </div>
+              <MarkZoomControl value={zoom} onChange={setZoom} />
+            </div>
           </Card>
         )}
 
@@ -474,6 +516,12 @@ function DistanceFormModal({
             placeholder="Viento, indoor, etc."
           />
         </div>
+
+        {distance && (
+          <p className="text-xs text-muted">
+            Última actualización: {formatDateTime(distance.updatedAt)}
+          </p>
+        )}
 
         {error && <FieldError>{error}</FieldError>}
 

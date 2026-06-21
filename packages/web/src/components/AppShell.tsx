@@ -3,6 +3,7 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useLogout } from '../hooks/useAuth';
 import { ACCENTS, useTheme } from '../theme';
 import { ConnectionNotice, OfflineChip } from './ConnectionNotice';
+import { MoonIcon, SunIcon } from './Icons';
 import { InstallButton } from './InstallButton';
 import { Button } from './ui';
 
@@ -137,7 +138,7 @@ export function AppShell() {
           aria-label="Cambiar tema"
           className="flex h-9 w-9 items-center justify-center rounded-lg text-fg hover:bg-surface-2"
         >
-          {theme === 'dark' ? '☀️' : '🌙'}
+          {theme === 'dark' ? <SunIcon className="h-5 w-5" /> : <MoonIcon className="h-5 w-5" />}
         </button>
         <Button variant="ghost" className="px-2" onClick={() => logout.mutate()}>
           Salir

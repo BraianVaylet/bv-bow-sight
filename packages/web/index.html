@@ -4,7 +4,24 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#18181B" />
+    <meta name="theme-color" content="#f7f8f3" />
+
+    <!-- Aplica el tema antes del primer paint para evitar parpadeo (FOUC). -->
+    <script>
+      (function () {
+        try {
+          var saved = localStorage.getItem('bv-theme');
+          var dark = saved
+            ? saved === 'dark'
+            : window.matchMedia('(prefers-color-scheme: dark)').matches;
+          document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+          var meta = document.querySelector('meta[name="theme-color"]');
+          if (meta) meta.setAttribute('content', dark ? '#191b16' : '#f7f8f3');
+        } catch (e) {
+          /* sin acceso a storage: tema claro por defecto */
+        }
+      })();
+    </script>
 
     <!-- PWA / instalación (el manifest lo inyecta vite-plugin-pwa) -->
     <link rel="apple-touch-icon" href="/icon-192.png" />

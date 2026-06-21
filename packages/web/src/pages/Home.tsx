@@ -1,17 +1,43 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { ArrowIcon, BowIcon, StarFilledIcon } from '../components/Icons';
 import { Button, Card, EmptyState, Spinner } from '../components/ui';
 import { useOnlineStatus } from '../hooks/useOnlineStatus';
 import { sightApi } from '../lib/api/sightConfigs';
+import {
+  getDefaultSightId,
+  hasEnteredThisSession,
+  markEnteredThisSession,
+  setDefaultSightId,
+} from '../lib/preferences';
 
 export function Home() {
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const online = useOnlineStatus();
   const { data, isLoading, isError } = useQuery({
     queryKey: ['sights'],
     queryFn: sightApi.list,
   });
+
+  // Si hay una mira por defecto, al abrir la app (una vez por sesión) se entra
+  // directo a ella sin pasar por Home. Si la mira ya no existe, se limpia.
+  // Marcamos la sesión como "entrada" en la primera carga, redirija o no, para
+  // que marcar una mira por defecto a mitad de sesión no rebote al usuario.
+  useEffect(() => {
+    if (!data || hasEnteredThisSession()) return;
+    const defaultId = getDefaultSightId();
+    if (defaultId != null && data.some((s) => s.id === defaultId)) {
+      markEnteredThisSession();
+      navigate(`/sight/${defaultId}`, { replace: true });
+      return;
+    }
+    if (defaultId != null) setDefaultSightId(null); // mira borrada o de otra cuenta
+    markEnteredThisSession();
+  }, [data, navigate]);
+
+  const defaultSightId = getDefaultSightId();
 
   // Con conexión, precargamos el detalle de cada mira para poder verlas offline.
   // (La persistencia solo guarda lo ya pedido; el detalle nunca se pide desde Home.)
@@ -32,11 +58,13 @@ export function Home() {
         <h1 className="mr-auto text-lg font-semibold text-fg">Mis miras</h1>
         <Link to="/setups/bow-setups">
           <Button variant="secondary" className="px-3 text-xs">
+            <BowIcon className="h-4 w-4" />
             Setups de arco
           </Button>
         </Link>
         <Link to="/setups/arrow-setups">
           <Button variant="secondary" className="px-3 text-xs">
+            <ArrowIcon className="h-4 w-4" />
             Sets de flechas
           </Button>
         </Link>
@@ -78,7 +106,15 @@ export function Home() {
               <Link to={`/sight/${s.id}`}>
                 <Card className="flex items-center gap-3 transition-colors hover:border-primary">
                   <div className="min-w-0 flex-1">
-                    <div className="truncate font-semibold text-fg">{s.name}</div>
+                    <div className="flex min-w-0 items-center gap-1.5">
+                      {s.id === defaultSightId && (
+                        <StarFilledIcon
+                          className="h-4 w-4 shrink-0 text-primary-ink"
+                          aria-label="Mira predeterminada"
+                        />
+                      )}
+                      <span className="min-w-0 truncate font-semibold text-fg">{s.name}</span>
+                    </div>
                     <div className="truncate text-sm text-muted">
                       {s.bowSetupName ?? 'Sin arco asignado'} · escala {s.scaleMin}–{s.scaleMax}
                     </div>

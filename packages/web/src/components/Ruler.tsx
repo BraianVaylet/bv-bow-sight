@@ -73,10 +73,12 @@ interface RulerProps {
   scaleMax: number;
   markers: RulerMarker[];
   onMarkerClick?: (id: number) => void;
+  /** Escala de las marcas de mira (chips + textos). 1 = normal. La regla no cambia. */
+  zoom?: number;
 }
 
 /** Regla vertical de calibración. El valor mínimo va arriba y crece hacia abajo. */
-export function Ruler({ scaleMin, scaleMax, markers, onMarkerClick }: RulerProps) {
+export function Ruler({ scaleMin, scaleMax, markers, onMarkerClick, zoom = 1 }: RulerProps) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ w: 320, h: 480 });
 
@@ -91,9 +93,15 @@ export function Ruler({ scaleMin, scaleMax, markers, onMarkerClick }: RulerProps
     return () => ro.disconnect();
   }, []);
 
+  // El zoom agranda los chips y su tipografía (no la regla ni los números de cm).
+  const labelH = LABEL_H * zoom;
+  const fsDist = 13 * zoom;
+  const fsUnit = 10 * zoom;
+  const fsEsc = 11 * zoom;
+
   const drawH = size.h - PAD * 2;
   const ticks = generateTicks(scaleMin, scaleMax, drawH);
-  const laid = layoutMarkers(markers, scaleMin, scaleMax, drawH, LABEL_H);
+  const laid = layoutMarkers(markers, scaleMin, scaleMax, drawH, labelH);
   // layoutMarkers preserva el id pero no los campos extra: los recuperamos por id.
   const byId = new Map(markers.map((m) => [m.id, m]));
   const chipW = size.w - MARKER_X - 6;
@@ -156,7 +164,9 @@ export function Ruler({ scaleMin, scaleMax, markers, onMarkerClick }: RulerProps
             const s = STYLES[variant];
             const isUser = variant === 'user';
             const estimated = !isUser && src?.interpolated === false;
+            const hasNote = isUser && !!src?.notes?.trim();
             const pushed = Math.abs(m.labelY - m.anchorY) > 0.5;
+            const noteSize = 14 * zoom;
             return (
               <g key={m.id} className={isUser ? 'cursor-pointer' : undefined}>
                 {/* Línea guía si la etiqueta se corrió */}
@@ -183,25 +193,24 @@ export function Ruler({ scaleMin, scaleMax, markers, onMarkerClick }: RulerProps
                 <g transform={`translate(${MARKER_X} ${m.labelY})`}>
                   <rect
                     x={0}
-                    y={-LABEL_H / 2}
+                    y={-labelH / 2}
                     width={chipW}
-                    height={LABEL_H}
+                    height={labelH}
                     rx={8}
                     fill={s.chipFill}
                     stroke={s.chipStroke}
                     strokeDasharray={s.dashed ? '4 3' : undefined}
                   />
-                  <text x={10} y={1} dominantBaseline="middle" fontSize={13}>
+                  <text x={10} y={1} dominantBaseline="middle" fontSize={fsDist}>
                     <tspan className="tnum" fontWeight={700} fill={s.dist}>
                       {estimated ? '≈' : ''}
                       {m.distanceM}
                     </tspan>
-                    <tspan fontSize={10} fontWeight={500} fill={s.muted}>
-                      {' '}
-                      m ·{' '}
+                    <tspan fontSize={fsUnit} fontWeight={500} fill={s.muted}>
+                      {' m '}
                     </tspan>
-                    <tspan fontSize={11} fill={s.muted}>
-                      esc{' '}
+                    <tspan fontSize={fsEsc} fontWeight={600} fill={s.muted}>
+                      {'→ '}
                     </tspan>
                     <tspan className="tnum" fontWeight={600} fill={s.scale}>
                       {fmtScale(m.scaleValue)}
@@ -211,14 +220,47 @@ export function Ruler({ scaleMin, scaleMax, markers, onMarkerClick }: RulerProps
                   {isUser && (
                     <rect
                       x={0}
-                      y={-LABEL_H / 2}
+                      y={-labelH / 2}
                       width={chipW}
-                      height={LABEL_H}
+                      height={labelH}
                       fill="transparent"
                       onClick={() => onMarkerClick?.(m.id)}
                     >
-                      <title>{`${m.distanceM} m · escala ${fmtScale(m.scaleValue)}`}</title>
+                      <title>
+                        {`${m.distanceM} m · escala ${fmtScale(m.scaleValue)}${
+                          hasNote ? `\nNota: ${src?.notes?.trim()}` : ''
+                        }`}
+                      </title>
                     </rect>
+                  )}
+                  {/* Indicador: la marca tiene una observación (burbuja de mensaje) */}
+                  {hasNote && (
+                    <g
+                      transform={`translate(${chipW - noteSize - 5} ${-labelH / 2 + 4}) scale(${noteSize / 16})`}
+                    >
+                      <path
+                        d="M3.5 1H12.5A2.5 2.5 0 0 1 15 3.5V8.5A2.5 2.5 0 0 1 12.5 11H7L4 14V11H3.5A2.5 2.5 0 0 1 1 8.5V3.5A2.5 2.5 0 0 1 3.5 1Z"
+                        fill="var(--color-primary)"
+                      />
+                      <line
+                        x1={4.5}
+                        y1={4.75}
+                        x2={11.5}
+                        y2={4.75}
+                        stroke="var(--color-surface)"
+                        strokeWidth={1.4}
+                        strokeLinecap="round"
+                      />
+                      <line
+                        x1={4.5}
+                        y1={7.5}
+                        x2={9}
+                        y2={7.5}
+                        stroke="var(--color-surface)"
+                        strokeWidth={1.4}
+                        strokeLinecap="round"
+                      />
+                    </g>
                   )}
                 </g>
               </g>

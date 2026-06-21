@@ -127,7 +127,7 @@ export function EmptyState({
 }) {
   return (
     <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border px-6 py-12 text-center">
-      <div className="text-base font-semibold text-fg">{title}</div>
+      <div className="font-display text-lg font-semibold text-fg">{title}</div>
       {description && <p className="max-w-xs text-sm text-muted">{description}</p>}
       {action}
     </div>
