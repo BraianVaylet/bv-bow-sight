@@ -1,5 +1,6 @@
 import { Navigate, Outlet, Route, Routes } from 'react-router-dom';
 import { AppShell } from './components/AppShell';
+import { UpdatePrompt } from './components/UpdatePrompt';
 import { Spinner } from './components/ui';
 import { useMe } from './hooks/useAuth';
 import { Home } from './pages/Home';
@@ -37,31 +38,34 @@ function PublicOnly() {
 
 export function App() {
   return (
-    <Routes>
-      <Route element={<PublicOnly />}>
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/recover" element={<Recover />} />
-      </Route>
-
-      <Route element={<Protected />}>
-        <Route element={<AppShell />}>
-          <Route path="/" element={<Home />} />
-          <Route
-            path="/setups/bow-setups"
-            element={<Setups kind="bow-setups" title="Setups de arco" />}
-          />
-          <Route
-            path="/setups/arrow-setups"
-            element={<Setups kind="arrow-setups" title="Sets de flechas" />}
-          />
-          <Route path="/sight/new" element={<SightCreate />} />
-          <Route path="/sight/:id" element={<SightDetail />} />
-          <Route path="/sight/:id/edit" element={<SightEdit />} />
+    <>
+      <Routes>
+        <Route element={<PublicOnly />}>
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/recover" element={<Recover />} />
         </Route>
-      </Route>
 
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+        <Route element={<Protected />}>
+          <Route element={<AppShell />}>
+            <Route path="/" element={<Home />} />
+            <Route
+              path="/setups/bow-setups"
+              element={<Setups kind="bow-setups" title="Setups de arco" />}
+            />
+            <Route
+              path="/setups/arrow-setups"
+              element={<Setups kind="arrow-setups" title="Sets de flechas" />}
+            />
+            <Route path="/sight/new" element={<SightCreate />} />
+            <Route path="/sight/:id" element={<SightDetail />} />
+            <Route path="/sight/:id/edit" element={<SightEdit />} />
+          </Route>
+        </Route>
+
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+      <UpdatePrompt />
+    </>
   );
 }

@@ -19,7 +19,9 @@ export default defineConfig({
     react(),
     tailwindcss(),
     VitePWA({
-      registerType: 'autoUpdate',
+      // 'prompt': la nueva versión no se aplica sola; la app avisa y el usuario
+      // actualiza con un toque (ver components/UpdatePrompt.tsx).
+      registerType: 'prompt',
       injectRegister: 'auto',
       // No activar el SW en dev ni en los tests (vitest usa este mismo config).
       devOptions: { enabled: false },
