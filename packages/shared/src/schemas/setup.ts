@@ -8,11 +8,12 @@ export const setupCreateSchema = z.object({
     .trim()
     .min(LIMITS.setupName.min, 'El nombre es obligatorio.')
     .max(LIMITS.setupName.max, `Máximo ${LIMITS.setupName.max} caracteres.`),
+  // Observaciones opcionales: se admite vacío (la columna es NOT NULL → '').
   notes: z
     .string()
     .trim()
-    .min(LIMITS.setupNotes.min, 'Las observaciones son obligatorias.')
-    .max(LIMITS.setupNotes.max, `Máximo ${LIMITS.setupNotes.max} caracteres.`),
+    .max(LIMITS.setupNotes.max, `Máximo ${LIMITS.setupNotes.max} caracteres.`)
+    .default(''),
 });
 
 export const setupUpdateSchema = setupCreateSchema.partial();

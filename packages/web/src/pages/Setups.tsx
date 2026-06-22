@@ -1,7 +1,7 @@
 import type { Setup } from '@bv/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { type FormEvent, useState } from 'react';
-import { ArrowIcon, BowIcon } from '../components/Icons';
+import { ArrowIcon, BowIcon, PencilIcon, TrashIcon } from '../components/Icons';
 import {
   Button,
   Card,
@@ -80,15 +80,23 @@ export function Setups({ kind, title }: { kind: SetupKind; title: string }) {
                     <p className="whitespace-pre-wrap text-sm text-muted">{s.notes}</p>
                   </div>
                   <div className="flex shrink-0 gap-1">
-                    <Button variant="ghost" className="px-2 text-xs" onClick={() => setEditing(s)}>
-                      Editar
+                    <Button
+                      variant="ghost"
+                      className="px-2"
+                      aria-label="Editar"
+                      title="Editar"
+                      onClick={() => setEditing(s)}
+                    >
+                      <PencilIcon className="h-4 w-4" />
                     </Button>
                     <Button
                       variant="ghost"
-                      className="px-2 text-xs text-danger-ink"
+                      className="px-2 text-danger-ink"
+                      aria-label="Eliminar"
+                      title="Eliminar"
                       onClick={() => confirm(`¿Eliminar "${s.name}"?`) && removeMut.mutate(s.id)}
                     >
-                      Eliminar
+                      <TrashIcon className="h-4 w-4" />
                     </Button>
                   </div>
                 </div>
@@ -212,13 +220,12 @@ function SetupFormModal({
           </div>
         )}
         <div>
-          <Label htmlFor="notes">Observaciones</Label>
+          <Label htmlFor="notes">Observaciones (opcional)</Label>
           <TextArea
             id="notes"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             placeholder={notesPlaceholder}
-            required
           />
         </div>
         {error && <FieldError>{error}</FieldError>}

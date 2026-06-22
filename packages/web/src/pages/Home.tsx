@@ -39,6 +39,11 @@ export function Home() {
 
   const defaultSightId = getDefaultSightId();
 
+  // La mira por defecto va siempre primera; el resto mantiene su orden original.
+  const orderedSights = data
+    ? [...data].sort((a, b) => Number(b.id === defaultSightId) - Number(a.id === defaultSightId))
+    : [];
+
   // Con conexión, precargamos el detalle de cada mira para poder verlas offline.
   // (La persistencia solo guarda lo ya pedido; el detalle nunca se pide desde Home.)
   useEffect(() => {
@@ -101,7 +106,7 @@ export function Home() {
 
       {data && data.length > 0 && (
         <ul className="flex flex-col gap-2">
-          {data.map((s) => (
+          {orderedSights.map((s) => (
             <li key={s.id}>
               <Link to={`/sight/${s.id}`}>
                 <Card className="flex items-center gap-3 transition-colors hover:border-primary">
