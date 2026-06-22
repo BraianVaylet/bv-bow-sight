@@ -20,6 +20,26 @@ function Icon({ children, ...props }: IconProps) {
   );
 }
 
+/** Cerrar sesión (igual que bv-cross). */
+export const LogoutIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+    <polyline points="16 17 21 12 16 7" />
+    <line x1="21" y1="12" x2="9" y2="12" />
+  </Icon>
+);
+
+/** Paleta de colores (selector de color de la app). */
+export const PaletteIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M12 22a1 1 0 0 1 0-20 10 9 0 0 1 10 9 5 5 0 0 1-5 5h-2.25a1.75 1.75 0 0 0-1.4 2.8l.3.4a1.75 1.75 0 0 1-1.4 2.8z" />
+    <circle cx="13.5" cy="6.5" r=".5" fill="currentColor" />
+    <circle cx="17.5" cy="10.5" r=".5" fill="currentColor" />
+    <circle cx="6.5" cy="12.5" r=".5" fill="currentColor" />
+    <circle cx="8.5" cy="7.5" r=".5" fill="currentColor" />
+  </Icon>
+);
+
 /** Información (ayuda contextual). */
 export const InfoIcon = (p: IconProps) => (
   <Icon {...p}>

@@ -7,6 +7,7 @@ import {
   Card,
   EmptyState,
   FieldError,
+  FieldHint,
   Input,
   Label,
   Spinner,
@@ -116,6 +117,17 @@ export function Setups({ kind, title }: { kind: SetupKind; title: string }) {
   );
 }
 
+/** Colores de vanes permitidos (se guardan como emoji al inicio del nombre). */
+const VANE_EMOJIS = ['🔴', '🟠', '🟡', '🟢', '🔵', '🟣', '⚫', '⚪'];
+
+/** Separa el emoji de vanes (si el nombre empieza con uno) del resto del nombre. */
+function splitVane(fullName: string): { vane: string | null; base: string } {
+  for (const e of VANE_EMOJIS) {
+    if (fullName.startsWith(e)) return { vane: e, base: fullName.slice(e.length) };
+  }
+  return { vane: null, base: fullName };
+}
+
 function SetupFormModal({
   kind,
   setup,
@@ -128,10 +140,16 @@ function SetupFormModal({
   onSaved: () => void;
 }) {
   const apiForKind = setupsApi(kind);
-  const [name, setName] = useState(setup?.name ?? '');
+  const isBow = kind === 'bow-setups';
+  // En sets de flechas el nombre puede venir con un emoji de vanes al inicio.
+  const [name, setName] = useState(() =>
+    isBow ? (setup?.name ?? '') : splitVane(setup?.name ?? '').base,
+  );
+  const [vane, setVane] = useState<string | null>(() =>
+    isBow ? null : splitVane(setup?.name ?? '').vane,
+  );
   const [notes, setNotes] = useState(setup?.notes ?? '');
 
-  const isBow = kind === 'bow-setups';
   const namePlaceholder = isBow
     ? 'Ingresá un nombre para tu setup de arco'
     : 'Ingresá un nombre para tu set de flechas';
@@ -140,8 +158,12 @@ function SetupFormModal({
     : 'Ingresá los datos de tu flecha (spine, puntas, vanes, largo, etc.)';
 
   const mut = useMutation({
-    mutationFn: () =>
-      setup ? apiForKind.update(setup.id, { name, notes }) : apiForKind.create({ name, notes }),
+    mutationFn: () => {
+      const finalName = !isBow && vane ? `${vane}${name.trim()}` : name.trim();
+      return setup
+        ? apiForKind.update(setup.id, { name: finalName, notes })
+        : apiForKind.create({ name: finalName, notes });
+    },
     onSuccess: onSaved,
   });
   const error = mut.error ? friendlyError(mut.error) : null;
@@ -164,6 +186,31 @@ function SetupFormModal({
             required
           />
         </div>
+        {!isBow && (
+          <div>
+            <Label>Color de vanes (opcional)</Label>
+            <div className="grid w-fit grid-cols-4 gap-1.5">
+              {VANE_EMOJIS.map((e) => {
+                const active = vane === e;
+                return (
+                  <button
+                    key={e}
+                    type="button"
+                    onClick={() => setVane(active ? null : e)}
+                    aria-pressed={active}
+                    aria-label={`Vanes ${e}`}
+                    className={`flex h-10 w-10 items-center justify-center rounded-lg text-xl ${
+                      active ? 'bg-surface-2 ring-2 ring-primary' : 'hover:bg-surface-2'
+                    }`}
+                  >
+                    {e}
+                  </button>
+                );
+              })}
+            </div>
+            <FieldHint>Se agrega adelante del nombre. Tocá de nuevo para quitarlo.</FieldHint>
+          </div>
+        )}
         <div>
           <Label htmlFor="notes">Observaciones</Label>
           <TextArea

@@ -7,9 +7,9 @@ import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
 // Versión de la app: única fuente de verdad = package.json.
-const { version } = JSON.parse(
-  readFileSync(path.resolve(__dirname, 'package.json'), 'utf-8'),
-) as { version: string };
+const { version } = JSON.parse(readFileSync(path.resolve(__dirname, 'package.json'), 'utf-8')) as {
+  version: string;
+};
 
 export default defineConfig({
   define: {

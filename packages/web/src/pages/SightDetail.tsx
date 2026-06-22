@@ -4,6 +4,7 @@ import {
   type SightConfigDetail,
   computeSightMarks,
   createSightModel,
+  roundMark,
 } from '@bv/shared';
 import type { Distance } from '@bv/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -160,7 +161,7 @@ export function SightDetail() {
       ? [
           {
             id: QUERY_ID,
-            scaleValue: queryResult.mark,
+            scaleValue: roundMark(queryResult.mark),
             distanceM: queryNum,
             variant: 'query',
             interpolated: queryResult.interpolated,
@@ -331,7 +332,7 @@ export function SightDetail() {
                     <span className="tnum text-muted">{queryNum} m →</span>
                     <span className="flex items-baseline gap-2">
                       <span className="tnum font-semibold text-lg text-primary-ink">
-                        {Number(queryResult.mark.toFixed(2))}
+                        {roundMark(queryResult.mark)}
                       </span>
                       <span className="text-muted text-xs">
                         {queryResult.interpolated ? 'medido' : 'estimado'}

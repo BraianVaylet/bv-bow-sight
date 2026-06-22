@@ -3,9 +3,8 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useLogout } from '../hooks/useAuth';
 import { ACCENTS, useTheme } from '../theme';
 import { ConnectionNotice, OfflineChip } from './ConnectionNotice';
-import { MoonIcon, SunIcon } from './Icons';
+import { LogoutIcon, MoonIcon, PaletteIcon, SunIcon } from './Icons';
 import { InstallButton } from './InstallButton';
-import { Button } from './ui';
 
 /** Selector de color base de la app (popover con muestras). */
 function AccentPicker() {
@@ -37,7 +36,7 @@ function AccentPicker() {
         aria-expanded={open}
         className="flex h-9 w-9 items-center justify-center rounded-lg text-fg hover:bg-surface-2"
       >
-        <span className="h-5 w-5 rounded-full bg-primary ring-2 ring-border" />
+        <PaletteIcon className="h-5 w-5" />
       </button>
 
       {open && (
@@ -140,9 +139,15 @@ export function AppShell() {
         >
           {theme === 'dark' ? <SunIcon className="h-5 w-5" /> : <MoonIcon className="h-5 w-5" />}
         </button>
-        <Button variant="ghost" className="px-2" onClick={() => logout.mutate()}>
-          Salir
-        </Button>
+        <button
+          type="button"
+          onClick={() => logout.mutate()}
+          aria-label="Cerrar sesión"
+          title="Cerrar sesión"
+          className="flex h-9 w-9 items-center justify-center rounded-lg text-fg hover:bg-surface-2"
+        >
+          <LogoutIcon className="h-5 w-5" />
+        </button>
       </header>
 
       <ConnectionNotice />

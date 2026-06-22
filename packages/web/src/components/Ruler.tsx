@@ -2,7 +2,7 @@ import { type MarkerInput, generateTicks, layoutMarkers } from '@bv/shared';
 import { useEffect, useRef, useState } from 'react';
 
 const PAD = 18; // margen vertical para no recortar mín/máx
-const TRACK_X = 58; // x del riel (deja lugar a los números de cm a la izquierda)
+const TRACK_X = 32; // x del riel (deja lugar justo para los números de cm a la izquierda)
 const MARKER_X = TRACK_X + 44; // x donde arranca el chip del marcador
 const LABEL_H = 26; // alto del chip de una línea (anti-solape)
 // Margen derecho: deja una zona muerta entre el chip (área tocable) y la barra

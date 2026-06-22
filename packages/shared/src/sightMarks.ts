@@ -190,14 +190,26 @@ export function createSightModel(input: SightPoint[]): SightModel {
   };
 }
 
-/** Punto medio (distancia media) entre cada par de marcas consecutivas, ordenadas. */
+/**
+ * Punto medio entre cada par de marcas consecutivas, ordenadas y redondeado al
+ * metro más cercano (las distancias de tiro se expresan en metros enteros).
+ */
 export function intermediateDistances(distances: number[]): number[] {
   const sorted = [...distances].sort((a, b) => a - b);
   const mids: number[] = [];
   for (let i = 0; i < sorted.length - 1; i++) {
-    mids.push((at(sorted, i) + at(sorted, i + 1)) / 2);
+    mids.push(Math.round((at(sorted, i) + at(sorted, i + 1)) / 2));
   }
   return mids;
+}
+
+/**
+ * Redondea una marca calculada a la precisión que el arquero puede fijar en la
+ * mira (0.1, igual que el paso de carga de marcas). No se aplica a las marcas
+ * medidas por el usuario, que se muestran tal cual las cargó.
+ */
+export function roundMark(mark: number): number {
+  return Math.round(mark * 10) / 10;
 }
 
 export interface ComputedSightMark {
@@ -227,7 +239,7 @@ export function computeSightMarks(
     if (userSet.has(d)) continue;
     const { mark, interpolated } = model.markAt(d);
     if (mark < scaleMin || mark > scaleMax) continue;
-    out.push({ distanceM: d, scaleValue: mark, interpolated });
+    out.push({ distanceM: d, scaleValue: roundMark(mark), interpolated });
   }
   return out.sort((a, b) => a.distanceM - b.distanceM);
 }
