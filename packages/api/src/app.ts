@@ -5,7 +5,7 @@ import { env, isProd } from './env';
 import { requireAuth } from './middleware/auth';
 import { errorHandler } from './middleware/error';
 import { rateLimit } from './middleware/rateLimit';
-import { bodyLimit, securityHeaders } from './middleware/security';
+import { apiCacheControl, bodyLimit, securityHeaders } from './middleware/security';
 import { authRoutes } from './routes/auth';
 import { healthRoutes } from './routes/health';
 import { setupRoutes } from './routes/setups';
@@ -47,6 +47,7 @@ export function createApp(db: DB) {
   protectedApi.route('/sight-configs', sightConfigRoutes(services));
   api.route('/', protectedApi);
 
+  app.use('/api/*', apiCacheControl);
   app.route('/api', api);
 
   return app;

@@ -28,6 +28,17 @@ export const securityHeaders: MiddlewareHandler<AppEnv> = async (c, next) => {
   await next();
 };
 
+/**
+ * Evita que el CDN (Railway Edge) cachee respuestas de la API.
+ * Los datos son por-usuario (cookie de sesión): cachearlos en el borde
+ * filtraría datos entre usuarios. `no-store` + `Vary: Cookie` lo previenen.
+ */
+export const apiCacheControl: MiddlewareHandler<AppEnv> = async (c, next) => {
+  await next();
+  c.header('Cache-Control', 'no-store, private');
+  c.header('Vary', 'Cookie');
+};
+
 /** Límite de tamaño de body (anti-payloads abusivos). */
 export function bodyLimit(maxBytes = 16 * 1024): MiddlewareHandler<AppEnv> {
   return async (c, next) => {

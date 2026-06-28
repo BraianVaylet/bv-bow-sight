@@ -21,12 +21,37 @@ export function mountStatic(app: Hono<AppEnv>): void {
     return;
   }
 
-  // Archivos estáticos (js, css, imágenes, etc.)
-  app.use('/*', serveStatic({ root: WEB_DIST }));
+  // Archivos estáticos (js, css, imágenes, etc.) con Cache-Control explícito
+  // para que el CDN de Railway cachee lo correcto sin romper despliegues.
+  app.use(
+    '/*',
+    serveStatic({
+      root: WEB_DIST,
+      onFound: (path, c) => {
+        if (path.includes('/assets/')) {
+          // Vite hashea estos nombres → contenido inmutable, cache larga.
+          c.header('Cache-Control', 'public, max-age=31536000, immutable');
+        } else if (
+          path.endsWith('sw.js') ||
+          path.endsWith('index.html') ||
+          path.endsWith('manifest.webmanifest')
+        ) {
+          // Service worker / shell / manifest: siempre revalidar para que un
+          // deploy nuevo se vea sin servir versiones viejas cacheadas en el borde.
+          c.header('Cache-Control', 'no-cache');
+        } else {
+          // Iconos, favicon, fuentes locales: cache moderada.
+          c.header('Cache-Control', 'public, max-age=86400');
+        }
+      },
+    }),
+  );
 
-  // Fallback SPA: cualquier ruta no-API devuelve index.html
+  // Fallback SPA: cualquier ruta no-API devuelve index.html (nunca cachear
+  // en el borde, así apunta siempre a los assets hasheados del último build).
   app.get('*', async (c) => {
     const html = await readFile(join(WEB_DIST, 'index.html'), 'utf-8');
+    c.header('Cache-Control', 'no-cache');
     return c.html(html);
   });
 }
